@@ -1,0 +1,8 @@
+@use "../../shared/Colors" as *;
+
+.button {
+  background-color: $buttonColor;
+  border: none;
+  padding: 0.9rem 1rem;
+  border-radius: 4px;
+}
