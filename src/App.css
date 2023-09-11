@@ -53,40 +53,5 @@
   padding: 2rem;
   text-align: center;
 }
-#root .home {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-#root .playlist {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-#root .playlist .track {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  border: 1px solid #5b5b5b;
-  gap: 1rem;
-  padding: 0.5rem;
-}
-#root .playlist .track:first-child {
-  border-top-left-radius: 0.5rem;
-  border-top-right-radius: 0.5rem;
-}
-#root .playlist .track:last-child {
-  border-bottom-left-radius: 0.5rem;
-  border-bottom-right-radius: 0.5rem;
-}
 
 /*# sourceMappingURL=App.css.map */
