@@ -9,9 +9,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) =>{
     const TAG = "[DiscoverWeeklySaver.tsx]";
 
     const scopes = ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private"];
-    console.log(TAG, import.meta.env.VITE_TEST);
-    // console.log("env:", import.meta.env.MODE);
-    // console.log("redirect target:", import.meta.env.VITE_REDIRECT_TARGET);
+    console.log(TAG,"page loaded, redirect target:", import.meta.env.VITE_REDIRECT_TARGET);
     const sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
     const [imageUrl, setImageUrl] = useState("");
     const [playlistItems, setPlaylistItems] = useState<PlaylistedTrack[]>([]);
@@ -151,11 +149,12 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
 
                     // const savedSet = songsInSavedPl.m
 
-                    //todo: only add items NOT in playlist currently.
-                    sdk.playlists.addItemsToPlaylist(plId, songsNotAlreadyInAllTimePL)
-                        .then( (res) => {
-                            console.log(TAG, "items added successfully- not created");
-                        }).catch(console.error);
+                    if(songsNotAlreadyInAllTimePL.length > 0){
+                        sdk.playlists.addItemsToPlaylist(plId, songsNotAlreadyInAllTimePL)
+                            .then( (res) => {
+                                console.log(TAG, "items added successfully- not created");
+                            }).catch(console.error);
+                    }
 
                 } else {
                     console.log(TAG, "creating pl and adding items:", playlistItems.length);
