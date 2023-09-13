@@ -24,6 +24,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [dwCollectionPLName, setDwCollectionPLName] = useState("Discover Weekly Collection");
     const [loading, setLoading] = useState(true);
     const [errorOnPage, setErrorOnPage] = useState(false);
+    const [showInput, setShowInput] = useState(false);
 
 
     /**
@@ -75,9 +76,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         //     });
 
         if (import.meta.env.MODE === "development") {
-            setDwCollectionPLName((oldName) => {
-                return oldName + "_DEV";
-            });
+            setDwCollectionPLName("Discover Weekly Collection_DEV");
 
         }
         getCurrentUserProfile().then(() => {
@@ -87,6 +86,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
 
     }, []);
+
+    function toggleShowInput() {
+        setShowInput(!showInput);
+    }
 
     /**
      * returns an array of uris for this week's Discover Weekly tracks
@@ -295,27 +298,36 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
                     <h1>Welcome {user.display_name}!!</h1>
                     <img className="usrImg" src={imageUrl} alt=""/>
                     <button onClick={saveSongsToCollection}>Save these songs!</button>
+                    <div className="plNameEntry">
+                        <span className={"showInput"} onClick={toggleShowInput}>Want to name your playlist yourself instead of using the default?</span>
+                        {showInput &&
+                            <input className={"collectionNameInput"} type="text" value={dwCollectionPLName}
+                                   onChange={(event) => {
+                                       setDwCollectionPLName(event.target.value);
+                                   }}/>
+                        }
+                    </div>
                     {/*<button onClick={searchForCollectionPlaylist}>search for collection!</button>*/}
                     {/*<button onClick={saveSongsToCollection}>save songs better</button>*/}
                     <div className="playlist">
                         <h2>Here's what's on your Discover Weekly this week!</h2>
                         <div className="tracks">
-                        {
-                            playlistItems.map((item) => {
-                                const name = item.track.name;
-                                const id = item.track.id;
+                            {
+                                playlistItems.map((item) => {
+                                    const name = item.track.name;
+                                    const id = item.track.id;
 
-                                //todo: make secondary request for when item is an episode to get the creators name.
-                                const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
-                                return (
-                                    <div className={"track"} key={id}>
-                                        <div className="name">{name}</div>
-                                        <span>-</span>
-                                        <div className="artist">{artist}</div>
-                                    </div>
-                                );
-                            })
-                        }
+                                    //todo: make secondary request for when item is an episode to get the creators name.
+                                    const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                                    return (
+                                        <div className={"track"} key={id}>
+                                            <div className="name">{name}</div>
+                                            <span>-</span>
+                                            <div className="artist">{artist}</div>
+                                        </div>
+                                    );
+                                })
+                            }
                         </div>
                     </div>
                 </>
