@@ -47,7 +47,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      */
     async function getDiscoverWeeklyItems(): Promise<boolean> {//todo: refactor to return bool instead of promise
         //37i9dQZF1EVKuMoAJjoTIw?si=ae9318c75dce445f idk what this pl is
-        return sdk.playlists.getPlaylist("37i9dQZEVXcUNWRvFBILtY")
+        const id = await getDiscoverWeeklyPlaylistId();
+        return sdk.playlists.getPlaylist(id)
             .then((playlist) => {
                 setPlaylistItems(playlist.tracks.items);
                 return true;
@@ -57,19 +58,29 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             });
     }
 
+    async function getDiscoverWeeklyPlaylistId(){
+        //todo: verify that it is guaranteed that the first result will always be the users correct discover weekly
+        const id = (await sdk.search("Discover Weekly", ["playlist"])).playlists?.items[0].id;
+        console.log(TAG, "id found:", id);
+        return id;
+    }
+
 
     // sdk.currentUser
 
     useEffect(() => {
         // const items = await sdk.search("The Beatles", ["artist"]);
 
-        // sdk.search("The Beatles", ["artist"])
+        // sdk.search("Discover Weekly", ["playlist"])
         //     .then((items) => {
-        //         console.table(items.artists.items.map((item) => ({
-        //             name: item.name,
-        //             followers: item.followers.total,
-        //             popularity: item.popularity,
-        //         })));
+        //         // console.table(items.artists.items.map((item) => ({
+        //         //     name: item.name,
+        //         //     followers: item.followers.total,
+        //         //     popularity: item.popularity,
+        //         // })));
+        //         console.log(items.playlists?.items.map( (item) => {
+        //             return item.description
+        //         }))
         //     })
         //     .catch((error) => {
         //         console.error(error);
