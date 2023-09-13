@@ -22,6 +22,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [playlistItems, setPlaylistItems] = useState<PlaylistedTrack[]>([]);
     const [user, setUser] = useState<UserProfile>({} as UserProfile);
     const [dwCollectionPLName, setDwCollectionPLName] = useState("Discover Weekly Collection");
+    const [loading, setLoading] = useState(true);
+    const [errorOnPage, setErrorOnPage] = useState(false);
 
 
     /**
@@ -42,7 +44,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     /**
      * @returns boolean whether dw items were retrieved successfully
      */
-    async function getDiscoverWeeklyItems(): Promise<boolean> {
+    async function getDiscoverWeeklyItems(): Promise<boolean> {//todo: refactor to return bool instead of promise
         //37i9dQZF1EVKuMoAJjoTIw?si=ae9318c75dce445f idk what this pl is
         return sdk.playlists.getPlaylist("37i9dQZEVXcUNWRvFBILtY")
             .then((playlist) => {
@@ -72,13 +74,17 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         //         console.error(error);
         //     });
 
-        if(import.meta.env.MODE === "development"){
-            setDwCollectionPLName( (oldName) => {
+        if (import.meta.env.MODE === "development") {
+            setDwCollectionPLName((oldName) => {
                 return oldName + "_DEV";
-            })
+            });
 
         }
-        getCurrentUserProfile().then(getDiscoverWeeklyItems).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
+        getCurrentUserProfile().then(() => {
+            getDiscoverWeeklyItems().then(() => {
+                setLoading(false);
+            });
+        }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
 
     }, []);
 
@@ -100,12 +106,12 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         let offset = 0;//offset will be incremented in groups of 50 until we run out of playlists or find what we are looking for
 
         let tmpRes;
-        while((tmpRes = await sdk.currentUser.playlists.playlists(MAX_SEARCH, offset)).items.length > 0){
+        while ((tmpRes = await sdk.currentUser.playlists.playlists(MAX_SEARCH, offset)).items.length > 0) {
             let plIdFound = doesCollectionExistInList(tmpRes);
-            if(plIdFound !== null){
+            if (plIdFound !== null) {
                 plId = plIdFound;
                 break;
-            }else{
+            } else {
                 offset += MAX_SEARCH;
             }
         }
@@ -133,25 +139,25 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * returns an array of uris for the given playlist id
      * @param plId
      */
-    async function getPlaylistUris(plId: string){
+    async function getPlaylistUris(plId: string) {
         /*
         (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
                         return item.track.uri;
                     });
          */
-        return (await sdk.playlists.getPlaylistItems(plId)).items.map( (item) => {
+        return (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
             return item.track.uri;
         });
     }
 
-    async function addSongsToPl(plId: string, urisToAdd: string[]){
+    async function addSongsToPl(plId: string, urisToAdd: string[]) {
         sdk.playlists.addItemsToPlaylist(plId, urisToAdd)
             .then((res) => {
                 console.log(TAG, "items added successfully:", plId);
             }).catch(console.error);
     }
 
-    async function createUserPlaylist(playlistDetails: CreatePlaylistRequest){
+    async function createUserPlaylist(playlistDetails: CreatePlaylistRequest) {
         //const newPlId = (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
         return (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
 
@@ -165,7 +171,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         const collectionPlaylistId = await searchForCollectionPlaylist();
         const thisWeeksSongs = getThisWeeksDWSongs();
 
-        if(collectionPlaylistId !== null){
+        if (collectionPlaylistId !== null) {
             const dwCollectionSongs = await getPlaylistUris(collectionPlaylistId);
 
             //todo: potentially extract to function?
@@ -178,7 +184,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             if (songsNotAlreadyInCollectionPL.length > 0) {
                 await addSongsToPl(collectionPlaylistId, songsNotAlreadyInCollectionPL);
             }
-        } else{
+        } else {
             console.log(TAG, "creating pl and adding items:", playlistItems.length);
             const playlistDetails = {
                 "name": dwCollectionPLName,
@@ -284,30 +290,39 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
 
     return (
         <div className="discoverWeeklySaver">
-            <h1>Welcome {user.display_name}!!</h1>
-            <img className="usrImg" src={imageUrl} alt=""/>
-            <button onClick={saveSongsToCollection}>Save these songs!</button>
-            {/*<button onClick={searchForCollectionPlaylist}>search for collection!</button>*/}
-            {/*<button onClick={saveSongsToCollection}>save songs better</button>*/}
-            <div className="playlist">
-                <h2>Here's what's on your Discover Weekly this week!</h2>
-                {
-                    playlistItems.map((item) => {
-                        const name = item.track.name;
-                        const id = item.track.id;
+            {!loading &&
+                <>
+                    <h1>Welcome {user.display_name}!!</h1>
+                    <img className="usrImg" src={imageUrl} alt=""/>
+                    <button onClick={saveSongsToCollection}>Save these songs!</button>
+                    {/*<button onClick={searchForCollectionPlaylist}>search for collection!</button>*/}
+                    {/*<button onClick={saveSongsToCollection}>save songs better</button>*/}
+                    <div className="playlist">
+                        <h2>Here's what's on your Discover Weekly this week!</h2>
+                        <div className="tracks">
+                        {
+                            playlistItems.map((item) => {
+                                const name = item.track.name;
+                                const id = item.track.id;
 
-                        //todo: make secondary request for when item is an episode to get the creators name.
-                        const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
-                        return (
-                            <div className={"track"} key={id}>
-                                <div className="name">{name}</div>
-                                -
-                                <div className="artist">{artist}</div>
-                            </div>
-                        );
-                    })
-                }
-            </div>
+                                //todo: make secondary request for when item is an episode to get the creators name.
+                                const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                                return (
+                                    <div className={"track"} key={id}>
+                                        <div className="name">{name}</div>
+                                        <span>-</span>
+                                        <div className="artist">{artist}</div>
+                                    </div>
+                                );
+                            })
+                        }
+                        </div>
+                    </div>
+                </>
+            }
+            {errorOnPage &&
+                <div className="error">Something went wrong!</div>
+            }
         </div>
     );
 };
