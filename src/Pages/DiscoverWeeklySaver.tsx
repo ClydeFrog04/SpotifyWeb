@@ -25,6 +25,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [loading, setLoading] = useState(true);
     const [errorOnPage, setErrorOnPage] = useState(false);
     const [showInput, setShowInput] = useState(false);
+    const [dwPlId, setDwPlId] = useState("");
+
+
 
 
     /**
@@ -85,6 +88,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         //     .catch((error) => {
         //         console.error(error);
         //     });
+        getDiscoverWeeklyPlaylistId().then( (res) => {
+            setDwPlId(res);
+        })
 
         if (import.meta.env.MODE === "development") {
             setDwCollectionPLName("Discover Weekly Collection_DEV");
@@ -306,7 +312,8 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
         <div className="discoverWeeklySaver">
             {!loading &&
                 <>
-                    <h1>Welcome from update! {user.display_name}!!</h1>
+                    <h1>Welcome {user.display_name}!!</h1>
+                    <h2>pl id found: {dwPlId}</h2>
                     <img className="usrImg" src={imageUrl} alt=""/>
                     <button onClick={saveSongsToCollection}>Save these songs!</button>
                     <div className="plNameEntry">
