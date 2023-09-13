@@ -295,7 +295,7 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
         <div className="discoverWeeklySaver">
             {!loading &&
                 <>
-                    <h1>Welcome {user.display_name}!!</h1>
+                    <h1>Welcome from update! {user.display_name}!!</h1>
                     <img className="usrImg" src={imageUrl} alt=""/>
                     <button onClick={saveSongsToCollection}>Save these songs!</button>
                     <div className="plNameEntry">
