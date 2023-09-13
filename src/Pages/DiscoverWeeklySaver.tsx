@@ -1,19 +1,20 @@
 import React, {useEffect, useState} from "react";
 import "./DiscoverWeeklySaver.css";
-import {PlaylistedTrack, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
+import {Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
+
 interface DiscoverWeeklySaverProps {
 
 }
 
-const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) =>{
+const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const TAG = "[DiscoverWeeklySaver.tsx]";
 
     const scopes = ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private"];
-    console.log(TAG,"page loaded, redirect target:", import.meta.env.VITE_REDIRECT_TARGET);
     const sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
     const [imageUrl, setImageUrl] = useState("");
     const [playlistItems, setPlaylistItems] = useState<PlaylistedTrack[]>([]);
     const [user, setUser] = useState<UserProfile>({} as UserProfile);
+    const [dwCollectionPLName, setDwCollectionPLName] = useState("Discover Weekly Collection_DEV");
 
 
     /**
@@ -22,7 +23,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) =>{
     async function getCurrentUserProfile(): Promise<boolean> {
         return sdk.currentUser.profile()
             .then((profile) => {
-                // console.log("profile:", JSON.stringify(profile.images[0].url));
                 setImageUrl(profile.images[0].url);
                 setUser(profile);
                 return true;
@@ -37,16 +37,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) =>{
      */
     async function getDiscoverWeeklyItems(): Promise<boolean> {
         //37i9dQZF1EVKuMoAJjoTIw?si=ae9318c75dce445f idk what this pl is
-        return sdk.playlists.getPlaylist("37i9dQZEVXcUNWRvFBILtY")//https://open.spotify.com/playlist/37i9dQZEVXcUNWRvFBILtY?si=a2855d37b8bf422c
+        return sdk.playlists.getPlaylist("37i9dQZEVXcUNWRvFBILtY")
             .then((playlist) => {
-                // console.log("tracks:", JSON.stringify(playlist.tracks));
-                // console.log(Object.keys(playlist.tracks.items));
                 setPlaylistItems(playlist.tracks.items);
-                console.log("DW ITEMS RETRIEVED YAYAYAYAYYA");
-                // console.table(playlist.tracks.items.map((item) => ({
-                //     name: item.track.name,
-                //     artist: "artists" in item.track ? item.track.artists[0].name : item.track.description
-                // })));
                 return true;
             }).catch((err) => {
                 console.error(err);
@@ -77,16 +70,57 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) =>{
 
     }, []);
 
-    function getThisWeeksDWSongs(){
-        return playlistItems.map( (item) => {
+    function getThisWeeksDWSongs() {
+        return playlistItems.map((item) => {
             return item.track.uri;
         });
+    }
+
+    function saveSongsToCollection() {
+    }
+
+    /**
+     * searches users playlists for a playlist matching the collectionPLName- returns undefined if not found, returns playlistId if found
+     */
+    async function searchForCollectionPlaylist() {
+        let plId: string | null = null;
+        // console.log(TAG, sdk.currentUser.playlists);
+        const MAX_SEARCH = 50;
+
+        // sdk.currentUser.playlists.playlists(MAX_SEARCH)
+        //     .then( (res) => {
+        //         plId = doesCollectionExistInList(res);
+        //         console.log(TAG, "plidFound:", plId);
+        //     }).catch(console.error);
+        const searchResults = await sdk.currentUser.playlists.playlists(MAX_SEARCH);
+
+        console.log(TAG, "num playlists found was:", searchResults.items.length);
+        console.log(TAG, "plidFound:", doesCollectionExistInList(searchResults));
+
+
+    }
+
+    /**
+     * a helper function for checking if the dwcolelction playlist is in the users playlists, returns the playlist id if so, null otherwise
+     * @param res
+     */
+    function doesCollectionExistInList(res: Page<SimplifiedPlaylist>) {
+        for (let i = 0; i < res.items.length; i++) {
+            const item = res.items[i];
+            // if (item.name === dwCollectionPLName) {
+            if (item.name === "music") {
+                console.log(TAG, "the playlist already exists, leaving early so that we can add items!");
+                // plId = item.id;
+                // break;
+                return item.id;
+            }
+        }
+        return null;
     }
 
     function createPlaylist() {
         //
         console.log(TAG, user.id);
-        const url = `https://api.spotify.com/v1/users/${user.id}/playlists`;
         /*
         var curr = new Date; // get current date
 var first = curr.getDate() - curr.getDay(); // First day is the day of the month - the day of the week
@@ -98,10 +132,11 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
         const today = new Date;
         const first = today.getDate() - today.getDay();
         const last = first + 6;
-        const dwName = "Discover Weekly Collection";//todo: make this a state var and allow user a textfield to enter the pl name they like!
-        console.log("today", today);
+        const firstday = new Date(today.setDate(first)).toUTCString();
+        const lastday = new Date(today.setDate(last)).toUTCString();
+        console.log("this week", firstday, lastday);
         const playlistDetails = {
-            "name": dwName,
+            "name": dwCollectionPLName,
             "description": "Testing creating a discover weekly playlist from react using spotify sdk/web api",
             "public": true
         };
@@ -116,7 +151,7 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
 
                 for (let i = 0; i < res.items.length; i++) {
                     const item = res.items[i];
-                    if (item.name === dwName) {
+                    if (item.name === dwCollectionPLName) {
                         console.log(TAG, "the playlist already exists, leaving early so that we can add items!");
                         plId = item.id;
                         break;
@@ -129,29 +164,20 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
                     console.log(TAG, "pl exists, adding items:", playlistItems.length);
                     const uris = getThisWeeksDWSongs();
 
-                    const dwCollection = (await sdk.playlists.getPlaylistItems(plId)).items.map( (item) => {
+                    const dwCollection = (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
                         return item.track.uri;
                     });
-                    console.log(TAG, "dw collection length:", dwCollection.length);
 
-                    // const songsNotAlreadyInAllTimePL = dwCollection.items.map( (track) => {
-                    //     return track.track.uri;
-                    // }).filter( (uri) => {
-                    //     // console.log(TAG, uri);
-                    //     if(!uris.includes(uri)){
-                    //         console.log(TAG, "could not find item:", uri);
-                    //     }
-                    //     return !uris.includes(uri);
-                    // });
-                    const songsNotAlreadyInAllTimePL = uris.filter( (uri) => {
-                       return !dwCollection.includes(uri);
+                    console.log(TAG, "dw collection length:", dwCollection.length);
+                    const songsNotAlreadyInAllTimePL = uris.filter((uri) => {
+                        return !dwCollection.includes(uri);
                     });
 
                     // const savedSet = songsInSavedPl.m
 
-                    if(songsNotAlreadyInAllTimePL.length > 0){
+                    if (songsNotAlreadyInAllTimePL.length > 0) {
                         sdk.playlists.addItemsToPlaylist(plId, songsNotAlreadyInAllTimePL)
-                            .then( (res) => {
+                            .then((res) => {
                                 console.log(TAG, "items added successfully- not created");
                             }).catch(console.error);
                     }
@@ -188,6 +214,7 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
             <h1>Welcome {user.display_name}!!</h1>
             <img className="usrImg" src={imageUrl} alt=""/>
             <button onClick={createPlaylist}>Save these songs!</button>
+            <button onClick={searchForCollectionPlaylist}>search for collection!</button>
             <div className="playlist">
                 <h2>Here's what's on your Discover Weekly this week!</h2>
                 {
@@ -209,6 +236,6 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
             </div>
         </div>
     );
-}
+};
 
 export default DiscoverWeeklySaver;
