@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import "./DiscoverWeeklySaver.css";
-import {Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
+import {Page, Playlist, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
 
 interface DiscoverWeeklySaverProps {
 
@@ -19,13 +19,15 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const scopes = ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private"];
     const sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
     const [imageUrl, setImageUrl] = useState("");
-    const [playlistItems, setPlaylistItems] = useState<PlaylistedTrack[]>([]);
+    const [discoverWeeklyItems, setDiscoverWeeklyItems] = useState<PlaylistedTrack[]>([]);
+    const [onRepeatItems, setOnRepeatItems] = useState<PlaylistedTrack[]>([]);
     const [user, setUser] = useState<UserProfile>({} as UserProfile);
     const [dwCollectionPLName, setDwCollectionPLName] = useState("Discover Weekly Collection");
     const [loading, setLoading] = useState(true);
     const [errorOnPage, setErrorOnPage] = useState(false);
     const [showInput, setShowInput] = useState(false);
     const [dwPlId, setDwPlId] = useState("");
+    const [activeTab, setActiveTab] = useState<"discover_weekly"|"on_repeat">("discover_weekly");
 
 
 
@@ -48,23 +50,49 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     /**
      * @returns boolean whether dw items were retrieved successfully
      */
-    async function getDiscoverWeeklyItems(): Promise<boolean> {//todo: refactor to return bool instead of promise
+    async function getDiscoverWeeklyItems() {//todo: refactor to return bool instead of promise
         //37i9dQZF1EVKuMoAJjoTIw?si=ae9318c75dce445f idk what this pl is
         const id = await getDiscoverWeeklyPlaylistId();
-        return sdk.playlists.getPlaylist(id)
-            .then((playlist) => {
-                setPlaylistItems(playlist.tracks.items);
-                return true;
-            }).catch((err) => {
-                console.error(err);
-                return false;
-            });
+        const items = await sdk.playlists.getPlaylistItems(id);
+        console.log(TAG, items.items);
+        return items.items;
+        // return sdk.playlists.getPlaylist(id)
+        //     .then((playlist) => {
+        //         setPlaylistItems(playlist.tracks.items);
+        //         return true;
+        //     }).catch((err) => {
+        //         console.error(err);
+        //         return false;
+        //     });
     }
 
-    async function getDiscoverWeeklyPlaylistId(){
+    async function getDiscoverWeeklyPlaylistId() {
         //todo: verify that it is guaranteed that the first result will always be the users correct discover weekly
         const id = (await sdk.search("Discover Weekly", ["playlist"])).playlists?.items[0].id;
         console.log(TAG, "id found:", id);
+        return id;
+    }
+
+    async function getUsersOnRepeatItems() {
+        // const id = (await sdk.search("On Repeat", ["playlist"])).playlists?.items[0].id;
+        const searchResults = await sdk.search("On Repeat", ["playlist"]);
+        let id = "";
+        for (let i = 0; i < searchResults.playlists?.items.length; i++) {
+            const playlist = searchResults.playlists?.items[i];
+            if (playlist.owner.display_name === "Spotify" && playlist.name === "On Repeat") {
+                id = playlist?.id;
+                break;
+            }
+        }
+
+        console.log(TAG, "on repeat id found:", id);
+        const items = (await sdk.playlists.getPlaylistItems(id)).items;
+        const tracks = items.map((item) => {
+            return {track: item.track.name};
+        });
+        console.table(tracks);
+        setOnRepeatItems(items);
+
         return id;
     }
 
@@ -88,17 +116,26 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         //     .catch((error) => {
         //         console.error(error);
         //     });
-        getDiscoverWeeklyPlaylistId().then( (res) => {
+        getDiscoverWeeklyPlaylistId().then((res) => {
             setDwPlId(res);
-        })
+        });
+        getUsersOnRepeatItems().then((res) => {
+            console.log("on repeat", res);
+        });
 
         if (import.meta.env.MODE === "development") {
             setDwCollectionPLName("Discover Weekly Collection_DEV");
 
         }
         getCurrentUserProfile().then(() => {
-            getDiscoverWeeklyItems().then(() => {
+            getDiscoverWeeklyItems().then((res) => {
                 setLoading(false);
+                console.log(TAG, "got items:", res);
+                if (res) {
+                    setDiscoverWeeklyItems(res);
+                } else {
+                    setErrorOnPage(true);
+                }
             });
         }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
 
@@ -112,7 +149,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * returns an array of uris for this week's Discover Weekly tracks
      */
     function getThisWeeksDWSongs() {
-        return playlistItems.map((item) => {
+        return discoverWeeklyItems.map((item) => {
             return item.track.uri;
         });
     }
@@ -205,7 +242,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                 await addSongsToPl(collectionPlaylistId, songsNotAlreadyInCollectionPL);
             }
         } else {
-            console.log(TAG, "creating pl and adding items:", playlistItems.length);
+            console.log(TAG, "creating pl and adding items:", discoverWeeklyItems.length);
             const playlistDetails = {
                 "name": dwCollectionPLName,
                 "description": "Testing creating a discover weekly playlist from react using spotify sdk/web api",
@@ -260,7 +297,7 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
                 console.log(TAG, "Playlist id:", plId);
                 if (plId !== null) {
                     //add items
-                    console.log(TAG, "pl exists, adding items:", playlistItems.length);
+                    console.log(TAG, "pl exists, adding items:", discoverWeeklyItems.length);
                     const uris = getThisWeeksDWSongs();
 
                     const dwCollection = (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
@@ -282,7 +319,7 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
                     }
 
                 } else {
-                    console.log(TAG, "creating pl and adding items:", playlistItems.length);
+                    console.log(TAG, "creating pl and adding items:", discoverWeeklyItems.length);
 
                     sdk.playlists.createPlaylist(user.id, playlistDetails)
                         .then((res) => {
@@ -308,50 +345,107 @@ var lastday = new Date(curr.setDate(last)).toUTCString();
         });
     }
 
+    const discoverWeeklyContent = (
+        <>
+            <div className="playlist">
+                <h2>Here's what's on your Discover Weekly this week!</h2>
+                <div className="tracks">
+                    {
+                        discoverWeeklyItems.map((item) => {
+                            const name = item.track.name;
+                            const id = item.track.id;
+
+                            //todo: make secondary request for when item is an episode to get the creators name.
+                            const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                            return (
+                                <div className={"track"} key={id}>
+                                    <div className="name">{name}</div>
+                                    <span>-</span>
+                                    <div className="artist">{artist}</div>
+                                </div>
+                            );
+                        })
+                    }
+                </div>
+            </div>
+        </>
+    );
+    const onRepeatContent = (
+        <>
+            <div className="playlist">
+                <h2>Here's what's you're listening to most right now!</h2>
+                <div className="tracks">
+                    {
+                        onRepeatItems.map((item) => {
+                            const name = item.track.name;
+                            const id = item.track.id;
+
+                            //todo: make secondary request for when item is an episode to get the creators name.
+                            const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                            return (
+                                <div className={"track"} key={id}>
+                                    <div className="name">{name}</div>
+                                    <span>-</span>
+                                    <div className="artist">{artist}</div>
+                                </div>
+                            );
+                        })
+                    }
+                </div>
+            </div>
+        </>
+    );
+
     return (
         <div className="discoverWeeklySaver">
             {!loading &&
                 <>
-                    <h1>Welcome {user.display_name}!!</h1>
-                    <h2>pl id found: {dwPlId}</h2>
-                    <img className="usrImg" src={imageUrl} alt=""/>
-                    <button onClick={saveSongsToCollection}>Save these songs!</button>
-                    <div className="plNameEntry">
-                        <span className={"showInput"} onClick={toggleShowInput}>Want to name your playlist yourself instead of using the default?</span>
-                        {showInput &&
-                            <input className={"collectionNameInput"} type="text" value={dwCollectionPLName}
-                                   onChange={(event) => {
-                                       setDwCollectionPLName(event.target.value);
-                                   }}/>
-                        }
-                    </div>
-                    {/*<button onClick={searchForCollectionPlaylist}>search for collection!</button>*/}
-                    {/*<button onClick={saveSongsToCollection}>save songs better</button>*/}
-                    <div className="playlist">
-                        <h2>Here's what's on your Discover Weekly this week!</h2>
-                        <div className="tracks">
-                            {
-                                playlistItems.map((item) => {
-                                    const name = item.track.name;
-                                    const id = item.track.id;
+                    {errorOnPage ? <div className="error">Something went wrong!</div> :
+                        <>
+                            <h1>Welcome {user.display_name}!!</h1>
+                            <img className="usrImg" src={imageUrl} alt=""/>
+                            <button onClick={saveSongsToCollection}>Save these songs!</button>
+                            <div className="plNameEntry">
+                                <span className={"showInput"} onClick={toggleShowInput}>Want to name your playlist yourself instead of using the default?</span>
+                                {showInput &&
+                                    <input className={"collectionNameInput"} type="text" value={dwCollectionPLName}
+                                           onChange={(event) => {
+                                               setDwCollectionPLName(event.target.value);
+                                           }}/>
+                                }
+                            </div>
+                            {/*<button onClick={searchForCollectionPlaylist}>search for collection!</button>*/}
+                            {/*<button onClick={saveSongsToCollection}>save songs better</button>*/}
+                            <div className="tabContainer">
+                                <div className="tab">Discover Weekly</div>
+                                <div className="tab">On Repeat</div>
+                            </div>
+                            <div className="playlist">
+                                {activeTab === "discover_weekly" ?
+                                    <h2>Here's what's on your Discover Weekly this week!</h2> :
+                                    <h2>Here's what's you're listening to most right now!</h2>
+                                }
+                                <div className="tracks">
+                                    {
+                                        (activeTab === "discover_weekly" ? discoverWeeklyItems : onRepeatItems).map((item) => {
+                                            const name = item.track.name;
+                                            const id = item.track.id;
 
-                                    //todo: make secondary request for when item is an episode to get the creators name.
-                                    const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
-                                    return (
-                                        <div className={"track"} key={id}>
-                                            <div className="name">{name}</div>
-                                            <span>-</span>
-                                            <div className="artist">{artist}</div>
-                                        </div>
-                                    );
-                                })
-                            }
-                        </div>
-                    </div>
+                                            //todo: make secondary request for when item is an episode to get the creators name.
+                                            const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                                            return (
+                                                <div className={"track"} key={id}>
+                                                    <div className="name">{name}</div>
+                                                    <span>-</span>
+                                                    <div className="artist">{artist}</div>
+                                                </div>
+                                            );
+                                        })
+                                    }
+                                </div>
+                            </div>
+                        </>}
                 </>
-            }
-            {errorOnPage &&
-                <div className="error">Something went wrong!</div>
             }
         </div>
     );
