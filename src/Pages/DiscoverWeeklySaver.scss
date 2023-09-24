@@ -12,9 +12,14 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        width: 30vw;
+
         //width: 50;
         //border: 1px solid rebeccapurple;
 
+        .tracks{
+            width: 100%;
+        }
         .track {
             @include flexCenter();
             @include fitContainer();
@@ -24,6 +29,13 @@
             //border-radius: 1rem;
             //display: grid;
             //grid-template-columns: repeat(2, 1fr);
+
+            .name{
+                //max-width: 4ch;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
 
             &:first-child {
                 border-top-left-radius: .5rem;
@@ -64,6 +76,42 @@
 
     .usrImg{
         border-radius: 50%;
+    }
+
+    .tabContainer{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        border-bottom: 4px solid #006031;
+        //border-bottom: 4px solid #5b5b5b;
+        padding: 0 6.7rem;
+        margin-bottom: -0.5rem;
+        margin-left: 17px;
+
+        .tab{
+            background-color: grey;
+            padding: .5rem;
+            border-top-left-radius: .5rem;
+            border-top-right-radius: .5rem;
+
+            &:hover{
+                cursor: pointer;
+            }
+
+            &.active{
+                background-color: #006031;
+            }
+        }
+
+        &:after{
+            //content: "";
+            //border-bottom: 4px solid red;
+            //position: absolute;
+            //width: 100%;
+            //bottom: 0;
+            //left: 0;
+        }
     }
 
     @media (width < $breakpointMobile) {
