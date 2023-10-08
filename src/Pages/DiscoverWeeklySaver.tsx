@@ -62,18 +62,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @returns boolean whether dw items were retrieved successfully
      */
     async function getDiscoverWeeklyItems() {//todo: refactor to return bool instead of promise
-        //37i9dQZF1EVKuMoAJjoTIw?si=ae9318c75dce445f idk what this pl is
         const id = await getDiscoverWeeklyPlaylistId();
         const items = await sdk.playlists.getPlaylistItems(id);
         return items.items;
-        // return sdk.playlists.getPlaylist(id)
-        //     .then((playlist) => {
-        //         setPlaylistItems(playlist.tracks.items);
-        //         return true;
-        //     }).catch((err) => {
-        //         console.error(err);
-        //         return false;
-        //     });
     }
 
     /**
@@ -90,12 +81,11 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * gets all on repeat items for the current user
      */
     async function getUsersOnRepeatItems() {
-        // const id = (await sdk.search("On Repeat", ["playlist"])).playlists?.items[0].id;
         const searchResults = await sdk.search("On Repeat", ["playlist"]);
         let id = "";
         for (let i = 0; i < searchResults.playlists?.items.length; i++) {
             const playlist = searchResults.playlists?.items[i];
-            if (playlist.owner.display_name === "Spotify" && playlist.name === "On Repeat") {
+            if (playlist.owner.display_name === "Spotify" && playlist.name === "On Repeat") {//todo: probably should do this for the discover weekly plid too
                 id = playlist?.id;
                 break;
             }
@@ -108,26 +98,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         return id;
     }
 
-
-    // sdk.currentUser
-
     useEffect(() => {
-        // const items = await sdk.search("The Beatles", ["artist"]);
-
-        // sdk.search("Discover Weekly", ["playlist"])
-        //     .then((items) => {
-        //         // console.table(items.artists.items.map((item) => ({
-        //         //     name: item.name,
-        //         //     followers: item.followers.total,
-        //         //     popularity: item.popularity,
-        //         // })));
-        //         console.log(items.playlists?.items.map( (item) => {
-        //             return item.description
-        //         }))
-        //     })
-        //     .catch((error) => {
-        //         console.error(error);
-        //     });
         (async () => {
             const {authenticated} = await sdk.authenticate();
             console.log("internal auth:", authenticated);
@@ -159,8 +130,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                 console.log("not authed");
             }
         })();
-
-
     }, []);
 
     function toggleShowInput() {
@@ -222,11 +191,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @param plId
      */
     async function getPlaylistUris(plId: string) {
-        /*
-        (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
-                        return item.track.uri;
-                    });
-         */
         return (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
             return item.track.uri;
         });
@@ -251,7 +215,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @returns the playlist id of the newly created playlist :]
      */
     async function createPlaylist(playlistDetails: CreatePlaylistRequest) {
-        //const newPlId = (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
         return (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
     }
 
@@ -259,11 +222,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * saves users current on repeat songs to an on repeat collection for the current month
      */
     async function saveOnRepeat() {
-        // const today = new Date;
-        // const month = today.toLocaleString("default", {month: "short"});
-        // const year = today.toLocaleString("default", {year: "numeric"});
-        // const plName = `OnRepeat${month}${year}`;
-        // const today = new Date;
         console.log(TAG, onRepeatCollectionPLName);
         const onRepeatPlId = await searchForPlaylistByName(onRepeatCollectionPLName);
         console.log(TAG, "saveOnRepeat:", onRepeatPlId);
@@ -338,6 +296,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         }
     }
 
+    //todo: currently not using these but do we want to???
     const discoverWeeklyContent = (
         <>
             <div className="playlist">
@@ -423,8 +382,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                                 }
 
                             </div>
-                            {/*<button onClick={searchForCollectionPlaylist}>search for collection!</button>*/}
-                            {/*<button onClick={saveSongsToCollection}>save songs better</button>*/}
                             <div className="spotifyLogoContainer">
                                 {/*todo: add spotify logos!*/}
                                 <img className="mobileLogo"/>
