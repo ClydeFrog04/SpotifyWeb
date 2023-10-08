@@ -27,7 +27,6 @@
         }
         .track {
             @include flexCenter();
-            @include fitContainer();
             border: 1px solid #5b5b5b;
             gap: 1rem;
             padding: .5rem;
