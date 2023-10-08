@@ -4,7 +4,16 @@
 
 .discoverWeeklySaver {
     @include flexCenterColumn();
+    @include fitContainer();
     gap: 0.5rem;
+
+    .plNameEntry{
+        width: 100vw;
+
+        p{
+            width: 100%;
+        }
+    }
 
     .playlist {
         @include flexCenterColumn();
@@ -12,18 +21,26 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        //width: 50;
-        //border: 1px solid rebeccapurple;
+        width: 30vw;
 
+
+        .tracks{
+            width: 100%;
+
+        }
         .track {
             @include flexCenter();
             @include fitContainer();
             border: 1px solid #5b5b5b;
             gap: 1rem;
             padding: .5rem;
-            //border-radius: 1rem;
-            //display: grid;
-            //grid-template-columns: repeat(2, 1fr);
+
+            .name{
+                //max-width: 4ch;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
 
             &:first-child {
                 border-top-left-radius: .5rem;
@@ -66,6 +83,40 @@
         border-radius: 50%;
     }
 
+    .tabContainer{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: -0.5rem;
+
+        .tab{
+            background-color: grey;
+            padding: .5rem;
+            border-top-left-radius: .5rem;
+            border-top-right-radius: .5rem;
+
+            &:hover{
+                cursor: pointer;
+            }
+
+            &.active{
+                background-color: #006031;
+            }
+        }
+
+        position: relative;
+        &:after{
+            content: "";
+            border-top: 4px solid #006031;
+            border-top-left-radius: 2rem .5rem;
+            border-top-right-radius: 2rem .5rem;
+            width: 29vw;
+            position: absolute;
+            bottom: 0;
+        }
+    }
+
     @media (width < $breakpointMobile) {
         width: 100%;
 
@@ -87,5 +138,14 @@
                 gap: 0;
             }
         }
+
+        .tabContainer{
+            width: 100%;
+
+            &:after{
+                width: 96%;
+            }
+        }
+
     }
 }

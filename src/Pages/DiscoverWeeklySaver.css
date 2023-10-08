@@ -52,7 +52,15 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   gap: 0.5rem;
+}
+.discoverWeeklySaver .plNameEntry {
+  width: 100vw;
+}
+.discoverWeeklySaver .plNameEntry p {
+  width: 100%;
 }
 .discoverWeeklySaver .playlist {
   display: flex;
@@ -63,6 +71,10 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  width: 30vw;
+}
+.discoverWeeklySaver .playlist .tracks {
+  width: 100%;
 }
 .discoverWeeklySaver .playlist .track {
   display: flex;
@@ -73,6 +85,11 @@
   border: 1px solid #5b5b5b;
   gap: 1rem;
   padding: 0.5rem;
+}
+.discoverWeeklySaver .playlist .track .name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .discoverWeeklySaver .playlist .track:first-child {
   border-top-left-radius: 0.5rem;
@@ -107,6 +124,35 @@
 .discoverWeeklySaver .usrImg {
   border-radius: 50%;
 }
+.discoverWeeklySaver .tabContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: -0.5rem;
+  position: relative;
+}
+.discoverWeeklySaver .tabContainer .tab {
+  background-color: grey;
+  padding: 0.5rem;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+.discoverWeeklySaver .tabContainer .tab:hover {
+  cursor: pointer;
+}
+.discoverWeeklySaver .tabContainer .tab.active {
+  background-color: #006031;
+}
+.discoverWeeklySaver .tabContainer:after {
+  content: "";
+  border-top: 4px solid #006031;
+  border-top-left-radius: 2rem 0.5rem;
+  border-top-right-radius: 2rem 0.5rem;
+  width: 29vw;
+  position: absolute;
+  bottom: 0;
+}
 @media (width < 480px) {
   .discoverWeeklySaver {
     width: 100%;
@@ -126,6 +172,12 @@
   .discoverWeeklySaver .playlist .track {
     flex-direction: column;
     gap: 0;
+  }
+  .discoverWeeklySaver .tabContainer {
+    width: 100%;
+  }
+  .discoverWeeklySaver .tabContainer:after {
+    width: 96%;
   }
 }
 

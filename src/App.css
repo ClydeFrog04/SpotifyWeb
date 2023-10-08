@@ -53,5 +53,8 @@
   padding: 2rem;
   text-align: center;
 }
+#root h2 {
+  margin: 0;
+}
 
 /*# sourceMappingURL=App.css.map */

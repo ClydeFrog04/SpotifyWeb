@@ -18,16 +18,29 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
     const scopes = ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private"];
     const sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
+    // const sdk = SpotifyApi.withClientCredentials()
+    // const sdk = useSpotify(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
+    // if (sdk === null) {
+    //     sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
+    // }
+
+    //state vars
     const [imageUrl, setImageUrl] = useState("");
-    const [playlistItems, setPlaylistItems] = useState<PlaylistedTrack[]>([]);
+    const [discoverWeeklyItems, setDiscoverWeeklyItems] = useState<PlaylistedTrack[]>([]);
+    const [onRepeatItems, setOnRepeatItems] = useState<PlaylistedTrack[]>([]);
     const [user, setUser] = useState<UserProfile>({} as UserProfile);
     const [dwCollectionPLName, setDwCollectionPLName] = useState("Discover Weekly Collection");
     const [loading, setLoading] = useState(true);
     const [errorOnPage, setErrorOnPage] = useState(false);
     const [showInput, setShowInput] = useState(false);
     const [dwPlId, setDwPlId] = useState("");
+    const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
 
-
+    //constants
+    const today = new Date;
+    const month = today.toLocaleString("default", {month: "short"});
+    const year = today.toLocaleString("default", {year: "numeric"});
+    const onRepeatCollectionPLName = `OnRepeat${month}${year}`;
 
 
     /**
@@ -48,60 +61,75 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     /**
      * @returns boolean whether dw items were retrieved successfully
      */
-    async function getDiscoverWeeklyItems(): Promise<boolean> {//todo: refactor to return bool instead of promise
-        //37i9dQZF1EVKuMoAJjoTIw?si=ae9318c75dce445f idk what this pl is
+    async function getDiscoverWeeklyItems() {//todo: refactor to return bool instead of promise
         const id = await getDiscoverWeeklyPlaylistId();
-        return sdk.playlists.getPlaylist(id)
-            .then((playlist) => {
-                setPlaylistItems(playlist.tracks.items);
-                return true;
-            }).catch((err) => {
-                console.error(err);
-                return false;
-            });
+        const items = await sdk.playlists.getPlaylistItems(id);
+        return items.items;
     }
 
-    async function getDiscoverWeeklyPlaylistId(){
+    /**
+     * gets the discover weekly playlist id for the current user
+     */
+    async function getDiscoverWeeklyPlaylistId() {
         //todo: verify that it is guaranteed that the first result will always be the users correct discover weekly
         const id = (await sdk.search("Discover Weekly", ["playlist"])).playlists?.items[0].id;
-        console.log(TAG, "id found:", id);
+        console.log(TAG, "id found for discover weekly playlist:", id);
         return id;
     }
 
+    /**
+     * gets all on repeat items for the current user
+     */
+    async function getUsersOnRepeatItems() {
+        const searchResults = await sdk.search("On Repeat", ["playlist"]);
+        let id = "";
+        for (let i = 0; i < searchResults.playlists?.items.length; i++) {
+            const playlist = searchResults.playlists?.items[i];
+            if (playlist.owner.display_name === "Spotify" && playlist.name === "On Repeat") {//todo: probably should do this for the discover weekly plid too
+                id = playlist?.id;
+                break;
+            }
+        }
 
-    // sdk.currentUser
+        console.log(TAG, "on repeat id found:", id);
+        const items = (await sdk.playlists.getPlaylistItems(id)).items;
+        setOnRepeatItems(items);
+
+        return id;
+    }
 
     useEffect(() => {
-        // const items = await sdk.search("The Beatles", ["artist"]);
+        (async () => {
+            const {authenticated} = await sdk.authenticate();
+            console.log("internal auth:", authenticated);
 
-        // sdk.search("Discover Weekly", ["playlist"])
-        //     .then((items) => {
-        //         // console.table(items.artists.items.map((item) => ({
-        //         //     name: item.name,
-        //         //     followers: item.followers.total,
-        //         //     popularity: item.popularity,
-        //         // })));
-        //         console.log(items.playlists?.items.map( (item) => {
-        //             return item.description
-        //         }))
-        //     })
-        //     .catch((error) => {
-        //         console.error(error);
-        //     });
-        getDiscoverWeeklyPlaylistId().then( (res) => {
-            setDwPlId(res);
-        })
+            if (authenticated) {
+                console.log("yay");
+                getDiscoverWeeklyPlaylistId().then((res) => {
+                    setDwPlId(res);
+                });
+                getUsersOnRepeatItems().then((res) => {
+                    console.log("on repeat", res);
+                });
 
-        if (import.meta.env.MODE === "development") {
-            setDwCollectionPLName("Discover Weekly Collection_DEV");
+                if (import.meta.env.MODE === "development") {
+                    setDwCollectionPLName("Discover Weekly Collection_DEV");
 
-        }
-        getCurrentUserProfile().then(() => {
-            getDiscoverWeeklyItems().then(() => {
-                setLoading(false);
-            });
-        }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
-
+                }
+                getCurrentUserProfile().then(() => {
+                    getDiscoverWeeklyItems().then((res) => {
+                        setLoading(false);
+                        if (res) {
+                            setDiscoverWeeklyItems(res);
+                        } else {
+                            setErrorOnPage(true);
+                        }
+                    });
+                }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
+            } else {
+                console.log("not authed");
+            }
+        })();
     }, []);
 
     function toggleShowInput() {
@@ -112,22 +140,23 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * returns an array of uris for this week's Discover Weekly tracks
      */
     function getThisWeeksDWSongs() {
-        return playlistItems.map((item) => {
+        return discoverWeeklyItems.map((item) => {
             return item.track.uri;
         });
     }
 
     /**
      * searches users playlists for a playlist matching the collectionPLName- returns null(do we want undefined instead?) if not found, returns playlistId if found
+     * @param name string name of playlist you want to retrieve the playlist id for
      */
-    async function searchForCollectionPlaylist() {
+    async function searchForPlaylistByName(name: string) {
         let plId: string | null = null;
         const MAX_SEARCH = 50;
         let offset = 0;//offset will be incremented in groups of 50 until we run out of playlists or find what we are looking for
 
         let tmpRes;
         while ((tmpRes = await sdk.currentUser.playlists.playlists(MAX_SEARCH, offset)).items.length > 0) {
-            let plIdFound = doesCollectionExistInList(tmpRes);
+            let plIdFound = searchListForPlaylistByName(tmpRes, name);
             if (plIdFound !== null) {
                 plId = plIdFound;
                 break;
@@ -135,19 +164,21 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                 offset += MAX_SEARCH;
             }
         }
-
         return plId;
     }
 
     /**
      * a helper function for checking if the dwCollection playlist is in the users playlists, returns the playlist id if so, null otherwise
-     * @param res
+     * @note this function should generally NOT be called directly, it is used by the searchForPlaylistByName function
+     *       as a helper function and to keep code dry!
+     * @param res a paged response typically provided by a search using the api
+     * @param name the name of the playlist you want to look for
      */
-    function doesCollectionExistInList(res: Page<SimplifiedPlaylist>) {//todo: better name needed- "does" implies boolean return
+    function searchListForPlaylistByName(res: Page<SimplifiedPlaylist>, name: string) {
         for (let i = 0; i < res.items.length; i++) {
             const item = res.items[i];
-            console.log(TAG, dwCollectionPLName);
-            if (item.name === dwCollectionPLName) {
+            console.log(TAG, name);
+            if (item.name === name) {
                 console.log(TAG, "the playlist already exists, leaving early so that we can add items!");
                 return item.id;
             }
@@ -160,16 +191,17 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @param plId
      */
     async function getPlaylistUris(plId: string) {
-        /*
-        (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
-                        return item.track.uri;
-                    });
-         */
         return (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
             return item.track.uri;
         });
     }
 
+    /**
+     * adds list of songs to a given playlist
+     * @param plId the playlist id for the playlist you want to add to
+     * @param urisToAdd an array of song uris you want to add to the given playlist
+     */
+    //todo: this function might be deprecated by the add to existing, see if we can scrap this one!
     async function addSongsToPl(plId: string, urisToAdd: string[]) {
         sdk.playlists.addItemsToPlaylist(plId, urisToAdd)
             .then((res) => {
@@ -177,10 +209,67 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             }).catch(console.error);
     }
 
-    async function createUserPlaylist(playlistDetails: CreatePlaylistRequest) {
-        //const newPlId = (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
+    /**
+     * creates a playlist for the current user with the playlist details provided
+     * @param playlistDetails
+     * @returns the playlist id of the newly created playlist :]
+     */
+    async function createPlaylist(playlistDetails: CreatePlaylistRequest) {
         return (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
+    }
 
+    /**
+     * saves users current on repeat songs to an on repeat collection for the current month
+     */
+    async function saveOnRepeat() {
+        console.log(TAG, onRepeatCollectionPLName);
+        const onRepeatPlId = await searchForPlaylistByName(onRepeatCollectionPLName);
+        console.log(TAG, "saveOnRepeat:", onRepeatPlId);
+
+        if (onRepeatPlId !== null) {
+            await addSongsToExistingPlaylist(onRepeatPlId, onRepeatItems.map((item) => item.track.uri));
+        } else {
+            console.log(TAG, "on repeat did not exist, creating new playlist!", `Adding ${onRepeatItems.length} items.`);
+            const playlistDetails = {
+                "name": onRepeatCollectionPLName,
+                "description": `Songs you love for ${today.toLocaleString("default", {
+                    month: "long",
+                    year: "numeric"
+                })}`,
+                "public": true
+            };
+
+            const newPlId = await createPlaylist(playlistDetails);
+            const uris = onRepeatItems.map((e) => e.track.uri);
+            console.log(TAG, `Creating new playlist ${onRepeatCollectionPLName} with ${uris.length} songs.`);
+            await addSongsToPl(newPlId, uris);
+        }
+    }
+
+    /**
+     * this function will add the provided uris to the existing playlist given by the playlist id.
+     * for any song that already exists in the given collection, they will be skipped.
+     * @param plId playlist to add songs too
+     * @param uris songs to add to playlist
+     */
+    async function addSongsToExistingPlaylist(plId: string, uris: string[]) {
+        console.log(TAG, "addsongstoexistingplaylist");
+        const providedPlSongs = await getPlaylistUris(plId);
+
+        const songsNotAlreadyInPl = uris.filter((uri) => {
+            return !providedPlSongs.includes(uri);
+        });
+
+        const name = (await sdk.playlists.getPlaylist(plId)).name;
+
+        //if we found songs that are not already in the playlist, add them. this prevents duplicate songs and
+        // prevents the user from being able to spam click the button and add then entire collection multiple times :]
+        if (songsNotAlreadyInPl.length > 0) {
+            await addSongsToPl(plId, songsNotAlreadyInPl);
+            console.log(TAG, `Added ${songsNotAlreadyInPl.length} songs to ${name}`);
+        } else {
+            console.log(TAG, `No new songs founds to add to ${name}, songs already exist!`);
+        }
     }
 
     /**
@@ -188,170 +277,149 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * hard coded, but i plan to add a textfield to allow the user to create or use their own playlist name!
      */
     async function saveSongsToCollection() {
-        const collectionPlaylistId = await searchForCollectionPlaylist();
+        const collectionPlaylistId = await searchForPlaylistByName(dwCollectionPLName);
         const thisWeeksSongs = getThisWeeksDWSongs();
 
         if (collectionPlaylistId !== null) {
-            const dwCollectionSongs = await getPlaylistUris(collectionPlaylistId);
+            await addSongsToExistingPlaylist(collectionPlaylistId, thisWeeksSongs);
 
-            //todo: potentially extract to function?
-            const songsNotAlreadyInCollectionPL = thisWeeksSongs.filter((uri) => {
-                return !dwCollectionSongs.includes(uri);
-            });
-
-            //if we found songs that are not already in the playlist, add them. this prevents duplicate songs and
-            // prevents the user from being able to spam click the button and add then entire collection multiple times :]
-            if (songsNotAlreadyInCollectionPL.length > 0) {
-                await addSongsToPl(collectionPlaylistId, songsNotAlreadyInCollectionPL);
-            }
         } else {
-            console.log(TAG, "creating pl and adding items:", playlistItems.length);
+            console.log(TAG, "creating pl and adding items:", discoverWeeklyItems.length);
             const playlistDetails = {
                 "name": dwCollectionPLName,
                 "description": "Testing creating a discover weekly playlist from react using spotify sdk/web api",
                 "public": true
             };
 
-            const newPlId = await createUserPlaylist(playlistDetails);
+            const newPlId = await createPlaylist(playlistDetails);
             await addSongsToPl(newPlId, thisWeeksSongs);
         }
     }
 
-    function createPlaylist() {
-        //
-        console.log(TAG, user.id);
-        /*
-        var curr = new Date; // get current date
-var first = curr.getDate() - curr.getDay(); // First day is the day of the month - the day of the week
-var last = first + 6; // last day is the first day + 6
+    //todo: currently not using these but do we want to???
+    const discoverWeeklyContent = (
+        <>
+            <div className="playlist">
+                <h2>Here's what's on your Discover Weekly this week!</h2>
+                <div className="tracks">
+                    {
+                        discoverWeeklyItems.map((item) => {
+                            const name = item.track.name;
+                            const id = item.track.id;
 
-var firstday = new Date(curr.setDate(first)).toUTCString();
-var lastday = new Date(curr.setDate(last)).toUTCString();
-         */
-        const today = new Date;
-        const first = today.getDate() - today.getDay();
-        const last = first + 6;
-        const firstday = new Date(today.setDate(first)).toUTCString();
-        const lastday = new Date(today.setDate(last)).toUTCString();
-        console.log("this week", firstday, lastday);
-        const playlistDetails = {
-            "name": dwCollectionPLName,
-            "description": "Testing creating a discover weekly playlist from react using spotify sdk/web api",
-            "public": true
-        };
-        let plId: string | null = null;
-
-
-        //todo: need to repeat this for every 50 result offset until no more results so we can be sure we've checked every pl the user has
-        // also make this it's own function-
-        sdk.currentUser.playlists.playlists(50)
-            .then(async (res) => {
-                console.log(TAG, "number of search results:", res.items.length);
-
-                for (let i = 0; i < res.items.length; i++) {
-                    const item = res.items[i];
-                    if (item.name === dwCollectionPLName) {
-                        console.log(TAG, "the playlist already exists, leaving early so that we can add items!");
-                        plId = item.id;
-                        break;
-                    }
-                }
-
-                console.log(TAG, "Playlist id:", plId);
-                if (plId !== null) {
-                    //add items
-                    console.log(TAG, "pl exists, adding items:", playlistItems.length);
-                    const uris = getThisWeeksDWSongs();
-
-                    const dwCollection = (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
-                        return item.track.uri;
-                    });
-
-                    console.log(TAG, "dw collection length:", dwCollection.length);
-                    const songsNotAlreadyInAllTimePL = uris.filter((uri) => {
-                        return !dwCollection.includes(uri);
-                    });
-
-                    // const savedSet = songsInSavedPl.m
-
-                    if (songsNotAlreadyInAllTimePL.length > 0) {
-                        sdk.playlists.addItemsToPlaylist(plId, songsNotAlreadyInAllTimePL)
-                            .then((res) => {
-                                console.log(TAG, "items added successfully- not created");
-                            }).catch(console.error);
-                    }
-
-                } else {
-                    console.log(TAG, "creating pl and adding items:", playlistItems.length);
-
-                    sdk.playlists.createPlaylist(user.id, playlistDetails)
-                        .then((res) => {
-                            console.log(TAG, "playlist created!", res.id);
-
-                            const uris = getThisWeeksDWSongs();
-                            sdk.playlists.addItemsToPlaylist(res.id, uris)
-                                .then((res) => {
-                                    console.log(TAG, "items added successfully!");
-                                })
-                                .catch((e) => {
-                                    console.error(e);
-
-                                });
+                            //todo: make secondary request for when item is an episode to get the creators name.
+                            const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                            return (
+                                <div className={"track"} key={id}>
+                                    <div className="name">{name}</div>
+                                    <span>-</span>
+                                    <div className="artist">{artist}</div>
+                                </div>
+                            );
                         })
-                        .catch((error) => {
-                            console.error(error);
-                        });
-                }
+                    }
+                </div>
+            </div>
+        </>
+    );
+    const onRepeatContent = (
+        <>
+            <div className="playlist">
+                <h2>Here's what you're listening to most right now!</h2>
+                <div className="tracks">
+                    {
+                        onRepeatItems.map((item) => {
+                            const name = item.track.name;
+                            const id = item.track.id;
 
-            }).catch((err) => {
-            console.error(err);
-        });
-    }
+                            //todo: make secondary request for when item is an episode to get the creators name.
+                            const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                            return (
+                                <div className={"track"} key={id}>
+                                    <div className="name">{name}</div>
+                                    <span>-</span>
+                                    <div className="artist">{artist}</div>
+                                </div>
+                            );
+                        })
+                    }
+                </div>
+            </div>
+        </>
+    );
 
     return (
         <div className="discoverWeeklySaver">
             {!loading &&
                 <>
-                    <h1>Welcome {user.display_name}!!</h1>
-                    <h2>pl id found: {dwPlId}</h2>
-                    <img className="usrImg" src={imageUrl} alt=""/>
-                    <button onClick={saveSongsToCollection}>Save these songs!</button>
-                    <div className="plNameEntry">
-                        <span className={"showInput"} onClick={toggleShowInput}>Want to name your playlist yourself instead of using the default?</span>
-                        {showInput &&
-                            <input className={"collectionNameInput"} type="text" value={dwCollectionPLName}
-                                   onChange={(event) => {
-                                       setDwCollectionPLName(event.target.value);
-                                   }}/>
-                        }
-                    </div>
-                    {/*<button onClick={searchForCollectionPlaylist}>search for collection!</button>*/}
-                    {/*<button onClick={saveSongsToCollection}>save songs better</button>*/}
-                    <div className="playlist">
-                        <h2>Here's what's on your Discover Weekly this week!</h2>
-                        <div className="tracks">
-                            {
-                                playlistItems.map((item) => {
-                                    const name = item.track.name;
-                                    const id = item.track.id;
+                    {errorOnPage ? <div className="error">Something went wrong!</div> :
+                        <>
+                            <h1>Welcome {user.display_name}!!</h1>
+                            <img className="usrImg" src={imageUrl} alt=""/>
+                            <button
+                                onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
+                                Save these songs!
+                            </button>
+                            <div className="plNameEntry">
+                                {activeTab === "discover_weekly" ?
 
-                                    //todo: make secondary request for when item is an episode to get the creators name.
-                                    const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
-                                    return (
-                                        <div className={"track"} key={id}>
-                                            <div className="name">{name}</div>
-                                            <span>-</span>
-                                            <div className="artist">{artist}</div>
-                                        </div>
-                                    );
-                                })
-                            }
-                        </div>
-                    </div>
+                                    <>
+                                        <span className={"showInput"} onClick={toggleShowInput}>Want to name your playlist yourself instead of using the default?</span>
+                                        {showInput &&
+                                            <input className={"collectionNameInput"} type="text"
+                                                   value={dwCollectionPLName}
+                                                   onChange={(event) => {
+                                                       setDwCollectionPLName(event.target.value);//todo: use this for onrepeat too!
+                                                   }}/>
+                                        }
+                                    </> :
+                                    <>
+                                        <p>On repeat collection playlist names are generated using the current month!
+                                            Each month you will get a new on-repeat collection. You can find this
+                                            month's collection by looking for "{onRepeatCollectionPLName}" in your
+                                            playlists!</p>
+                                    </>
+                                }
+
+                            </div>
+                            <div className="spotifyLogoContainer">
+                                {/*todo: add spotify logos!*/}
+                                <img className="mobileLogo"/>
+                            </div>
+                            <div className="tabContainer">
+                                <div className={`tab ${activeTab === "discover_weekly" ? "active" : ""}`.trimEnd()}
+                                     onClick={() => {
+                                         setActiveTab("discover_weekly");
+                                     }}>Discover Weekly
+                                </div>
+                                <div className={`tab ${activeTab === "on_repeat" ? "active" : ""}`.trimEnd()}
+                                     onClick={() => {
+                                         setActiveTab("on_repeat");
+                                     }}>On Repeat
+                                </div>
+                            </div>
+                            <div className="playlist">
+                                <div className="tracks">
+                                    {
+                                        (activeTab === "discover_weekly" ? discoverWeeklyItems : onRepeatItems).map((item) => {
+                                            const name = item.track.name;
+                                            const id = item.track.id;
+
+                                            //todo: make secondary request for when item is an episode to get the creators name.
+                                            const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                                            return (
+                                                <div className={"track"} key={id}>
+                                                    <div className="name">{name}</div>
+                                                    <span>-</span>
+                                                    <div className="artist">{artist}</div>
+                                                </div>
+                                            );
+                                        })
+                                    }
+                                </div>
+                            </div>
+                        </>}
                 </>
-            }
-            {errorOnPage &&
-                <div className="error">Something went wrong!</div>
             }
         </div>
     );
