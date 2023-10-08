@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import "./DiscoverWeeklySaver.css";
-import {Page, Playlist, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
+import {Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
 
 interface DiscoverWeeklySaverProps {
 
@@ -24,6 +24,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     //     sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
     // }
 
+    //state vars
     const [imageUrl, setImageUrl] = useState("");
     const [discoverWeeklyItems, setDiscoverWeeklyItems] = useState<PlaylistedTrack[]>([]);
     const [onRepeatItems, setOnRepeatItems] = useState<PlaylistedTrack[]>([]);
@@ -34,6 +35,12 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [showInput, setShowInput] = useState(false);
     const [dwPlId, setDwPlId] = useState("");
     const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
+
+    //constants
+    const today = new Date;
+    const month = today.toLocaleString("default", {month: "short"});
+    const year = today.toLocaleString("default", {year: "numeric"});
+    const onRepeatCollectionPLName = `OnRepeat${month}${year}`;
 
 
     /**
@@ -102,8 +109,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     }
 
 
-
-
     // sdk.currentUser
 
     useEffect(() => {
@@ -124,10 +129,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         //         console.error(error);
         //     });
         (async () => {
-            const { authenticated } = await sdk.authenticate();
+            const {authenticated} = await sdk.authenticate();
             console.log("internal auth:", authenticated);
 
-            if(authenticated){
+            if (authenticated) {
                 console.log("yay");
                 getDiscoverWeeklyPlaylistId().then((res) => {
                     setDwPlId(res);
@@ -150,7 +155,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                         }
                     });
                 }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
-            }else{
+            } else {
                 console.log("not authed");
             }
         })();
@@ -243,23 +248,24 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     /**
      * creates a playlist for the current user with the playlist details provided
      * @param playlistDetails
+     * @returns the playlist id of the newly created playlist :]
      */
     async function createPlaylist(playlistDetails: CreatePlaylistRequest) {
         //const newPlId = (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
         return (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
-
     }
 
     /**
      * saves users current on repeat songs to an on repeat collection for the current month
      */
     async function saveOnRepeat() {
-        const today = new Date;
-        const month = today.toLocaleString("default", {month: "short"});
-        const plName = `OnRepeat${month}`;
         // const today = new Date;
-        console.log(TAG, plName);
-        const onRepeatPlId = await searchForPlaylistByName(plName);
+        // const month = today.toLocaleString("default", {month: "short"});
+        // const year = today.toLocaleString("default", {year: "numeric"});
+        // const plName = `OnRepeat${month}${year}`;
+        // const today = new Date;
+        console.log(TAG, onRepeatCollectionPLName);
+        const onRepeatPlId = await searchForPlaylistByName(onRepeatCollectionPLName);
         console.log(TAG, "saveOnRepeat:", onRepeatPlId);
 
         if (onRepeatPlId !== null) {
@@ -267,7 +273,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         } else {
             console.log(TAG, "on repeat did not exist, creating new playlist!", `Adding ${onRepeatItems.length} items.`);
             const playlistDetails = {
-                "name": plName,
+                "name": onRepeatCollectionPLName,
                 "description": `Songs you love for ${today.toLocaleString("default", {
                     month: "long",
                     year: "numeric"
@@ -277,7 +283,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
             const newPlId = await createPlaylist(playlistDetails);
             const uris = onRepeatItems.map((e) => e.track.uri);
-            console.log(TAG, `Creating new playlist ${plName} with ${uris.length} songs.`);
+            console.log(TAG, `Creating new playlist ${onRepeatCollectionPLName} with ${uris.length} songs.`);
             await addSongsToPl(newPlId, uris);
         }
     }
@@ -392,37 +398,50 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                             <h1>Welcome {user.display_name}!!</h1>
                             <img className="usrImg" src={imageUrl} alt=""/>
                             <button
-                                onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>Save
-                                these songs!
+                                onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
+                                Save these songs!
                             </button>
                             <div className="plNameEntry">
-                                <span className={"showInput"} onClick={toggleShowInput}>Want to name your playlist yourself instead of using the default?</span>
-                                {showInput &&
-                                    <input className={"collectionNameInput"} type="text" value={dwCollectionPLName}
-                                           onChange={(event) => {
-                                               setDwCollectionPLName(event.target.value);//todo: use this for onrepeat too!
-                                           }}/>
+                                {activeTab === "discover_weekly" ?
+
+                                    <>
+                                        <span className={"showInput"} onClick={toggleShowInput}>Want to name your playlist yourself instead of using the default?</span>
+                                        {showInput &&
+                                            <input className={"collectionNameInput"} type="text"
+                                                   value={dwCollectionPLName}
+                                                   onChange={(event) => {
+                                                       setDwCollectionPLName(event.target.value);//todo: use this for onrepeat too!
+                                                   }}/>
+                                        }
+                                    </> :
+                                    <>
+                                        <p>On repeat collection playlist names are generated using the current month!
+                                            Each month you will get a new on-repeat collection. You can find this
+                                            month's collection by looking for "{onRepeatCollectionPLName}" in your
+                                            playlists!</p>
+                                    </>
                                 }
+
                             </div>
                             {/*<button onClick={searchForCollectionPlaylist}>search for collection!</button>*/}
                             {/*<button onClick={saveSongsToCollection}>save songs better</button>*/}
+                            <div className="spotifyLogoContainer">
+                                {/*todo: add spotify logos!*/}
+                                <img className="mobileLogo"/>
+                            </div>
                             <div className="tabContainer">
-                                <div className={`tab ${activeTab === "discover_weekly" && "active"}`.trimEnd()}
+                                <div className={`tab ${activeTab === "discover_weekly" ? "active" : ""}`.trimEnd()}
                                      onClick={() => {
                                          setActiveTab("discover_weekly");
                                      }}>Discover Weekly
                                 </div>
-                                <div className={`tab ${activeTab === "on_repeat" && "active"}`.trimEnd()}
+                                <div className={`tab ${activeTab === "on_repeat" ? "active" : ""}`.trimEnd()}
                                      onClick={() => {
                                          setActiveTab("on_repeat");
                                      }}>On Repeat
                                 </div>
                             </div>
                             <div className="playlist">
-                                {/*{activeTab === "discover_weekly" ?*/}
-                                {/*    <h2>Here's what's on your Discover Weekly this week!</h2> :*/}
-                                {/*    <h2>Here's what's you're listening to most right now!</h2>*/}
-                                {/*}*/}
                                 <div className="tracks">
                                     {
                                         (activeTab === "discover_weekly" ? discoverWeeklyItems : onRepeatItems).map((item) => {
