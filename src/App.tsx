@@ -5,7 +5,6 @@ import DiscoverWeeklySaver from "./Pages/DiscoverWeeklySaver.tsx";
 function App() {
     const TAG = "[APP.tsx]";
 
-
     return (
         <>
             <div className="App">
