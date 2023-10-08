@@ -1,14 +1,7 @@
 @use "shared/Styles" as *;
 
 #root {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
-
-    h2{
-        margin: 0;
-    }
+    width: 100vw;
 }
 
 //.logo {
