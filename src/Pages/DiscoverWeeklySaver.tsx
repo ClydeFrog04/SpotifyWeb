@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import "./DiscoverWeeklySaver.css";
 import {Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
+import SpotifyLogoGreen from "../res/spotify-icons-logos/logos/01_RGB/02_PNG/Spotify_Logo_RGB_Green.png";
 
 interface DiscoverWeeklySaverProps {
 
@@ -354,6 +355,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                 <>
                     {errorOnPage ? <div className="error">Something went wrong!</div> :
                         <>
+                            <img id="spotifyLogo" src={SpotifyLogoGreen} alt={"Spotify Logo"}/>
                             <h1>Welcome {user.display_name}!!</h1>
                             <img className="usrImg" src={imageUrl} alt=""/>
                             <button

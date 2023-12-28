@@ -119,6 +119,12 @@
   width: 75%;
   text-align: center;
 }
+.discoverWeeklySaver #spotifyLogo {
+  max-width: 25%;
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+}
 .discoverWeeklySaver .usrImg {
   border-radius: 50%;
 }
@@ -161,6 +167,7 @@
   }
   .discoverWeeklySaver .playlist {
     width: 100%;
+    padding-bottom: 4rem;
   }
   .discoverWeeklySaver .playlist .tracks {
     display: flex;
@@ -170,6 +177,10 @@
   .discoverWeeklySaver .playlist .track {
     flex-direction: column;
     gap: 0;
+  }
+  .discoverWeeklySaver #spotifyLogo {
+    max-width: 50%;
+    left: 25%;
   }
   .discoverWeeklySaver .tabContainer {
     width: 100%;
