@@ -73,8 +73,13 @@
         padding: .2rem;
         width: 75%;
         text-align: center;
+    }
 
-
+    #spotifyLogo{
+        max-width: 25%;
+        position: absolute;
+        bottom: 1rem;
+        left: 1rem;
     }
 
     .usrImg{
@@ -135,6 +140,12 @@
                 flex-direction: column;
                 gap: 0;
             }
+            padding-bottom: 4rem;
+        }
+
+        #spotifyLogo{
+            max-width: 50%;
+            left: 25%;
         }
 
         .tabContainer{
