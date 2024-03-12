@@ -18,7 +18,7 @@ interface CreatePlaylistRequest {
 
 const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const TAG = "[DiscoverWeeklySaver.tsx]";
-    const verboseLogging = true;// import.meta.env.VITE_VERBOSE_LOGGING === true;
+    const verboseLogging = import.meta.env.VITE_VERBOSE_LOGGING === "true";
     console.log("VERBOSE LOGGING SET TO", verboseLogging);
     console.log("any var work?", import.meta.env.VITE_SPOTIFY_CLIENT_ID !== undefined);
 
