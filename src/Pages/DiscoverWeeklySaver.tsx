@@ -18,7 +18,8 @@ interface CreatePlaylistRequest {
 
 const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const TAG = "[DiscoverWeeklySaver.tsx]";
-    const verboseLogging = import.meta.env.VITE_VERBOSE_LOGGING;
+    const verboseLogging = import.meta.env.VITE_VERBOSE_LOGGING === true;
+    console.log("VERBOSE LOGGING SET TO", verboseLogging);
 
     const scopes = ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private"];
     const sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
