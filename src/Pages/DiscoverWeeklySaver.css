@@ -60,6 +60,9 @@
   text-align: center;
   max-width: 50%;
 }
+.discoverWeeklySaver button {
+  cursor: pointer;
+}
 .discoverWeeklySaver .playlist {
   display: flex;
   align-items: center;
@@ -156,6 +159,16 @@
   width: 29vw;
   position: absolute;
   bottom: 0;
+}
+.discoverWeeklySaver .smolContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+.discoverWeeklySaver .smolContainer button {
+  font-size: 1rem;
+  cursor: pointer;
 }
 @media (width < 480px) {
   .discoverWeeklySaver {

@@ -3,6 +3,7 @@ import "./DiscoverWeeklySaver.css";
 import {Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
 import SpotifyLogoGreen from "../res/spotify-icons-logos/logos/01_RGB/02_PNG/Spotify_Logo_RGB_Green.png";
 import Toast from "../components/Toast/Toast.tsx";
+import {useNavigate} from "react-router-dom";
 
 interface DiscoverWeeklySaverProps {
 
@@ -40,6 +41,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
     const [showToast, setShowToast] = useState(false);
     const [toastText, setToastText] = useState("this is a toast:]");
+    const navigate = useNavigate();
 
 
     //constants
@@ -49,14 +51,20 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const onRepeatCollectionPLName = `OnRepeat${month}${year}`;
 
     const writeLog = (...logTextRest: any[]) => {
-        if(verboseLogging){
+        if (verboseLogging) {
             let out = "";
-            logTextRest.forEach( (logText) => {
-               out += " " + logText;
+            logTextRest.forEach((logText) => {
+                out += " " + logText;
             });
             console.log(TAG, out);
         }
-    }
+    };
+
+    const logout = () => {
+        localStorage.removeItem("spotify-sdk:AuthorizationCodeWithPKCEStrategy:token");
+        localStorage.removeItem("spotify-sdk:verifier");
+        navigate("/");
+    };
 
     /**
      * @returns boolean whether user profile was retrieved successfully
@@ -380,7 +388,11 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                     {errorOnPage ? <div className="error">Something went wrong!</div> :
                         <>
                             <img id="spotifyLogo" src={SpotifyLogoGreen} alt={"Spotify Logo"}/>
-                            <h1>Welcome {user.display_name}!!</h1>
+                            <div className="smolContainer">
+                                <h1>Welcome {user.display_name}!!</h1>
+                                <button onClick={logout}>Logout</button>
+                            </div>
+
                             <img className="usrImg" src={imageUrl} alt=""/>
                             <button
                                 onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
