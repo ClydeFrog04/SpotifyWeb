@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import "./DiscoverWeeklySaver.css";
 import {Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
 import SpotifyLogoGreen from "../res/spotify-icons-logos/logos/01_RGB/02_PNG/Spotify_Logo_RGB_Green.png";
@@ -41,7 +41,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
     const [showToast, setShowToast] = useState(false);
     const [toastText, setToastText] = useState("this is a toast:]");
-    const navigate = useNavigate();
+    const timeToCompareAgainst = useRef(0);
 
 
     //constants
@@ -49,6 +49,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const month = today.toLocaleString("default", {month: "short"});
     const year = today.toLocaleString("default", {year: "numeric"});
     const onRepeatCollectionPLName = `OnRepeat${month}${year}`;
+    const navigate = useNavigate();
+    const oneDayInMS = 86_400_000;
 
     const writeLog = (...logTextRest: any[]) => {
         if (verboseLogging) {
@@ -61,8 +63,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     };
 
     const logout = () => {
+        writeLog("Logging out!");
         localStorage.removeItem("spotify-sdk:AuthorizationCodeWithPKCEStrategy:token");
         localStorage.removeItem("spotify-sdk:verifier");
+        localStorage.removeItem("TTL");
         navigate("/");
     };
 
@@ -121,7 +125,29 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         return id;
     }
 
+    const validateTTL = () => {
+        writeLog("checking ttl");
+        // const TTL:number = parseInt(localStorage.getItem("TTL"));
+        const lsTTL = localStorage.getItem("TTL");
+        const TTL = lsTTL !== null ? parseInt(lsTTL) : undefined;
+        writeLog("TTL found: ", TTL);
+        if (TTL !== undefined && TTL <= timeToCompareAgainst.current) {
+            logout();
+        } else {
+            localStorage.setItem("TTL", (timeToCompareAgainst.current + oneDayInMS).toString());
+        }
+    };
+
+    const extendTTL = () => {
+        localStorage.setItem("TTL", (Date.now() + oneDayInMS).toString());
+    };
+
     useEffect(() => {
+        timeToCompareAgainst.current = Date.now();
+        writeLog("about to call ttl");
+        validateTTL();
+        writeLog("post call ttl");
+
         (async () => {
             const {authenticated} = await sdk.authenticate();
             writeLog("internal auth:", authenticated);
@@ -382,7 +408,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     );
 
     return (
-        <div className="discoverWeeklySaver">
+        <div className="discoverWeeklySaver" onClick={ () => {
+            writeLog("CLOCKED", Date.now());
+            extendTTL();
+        }}>
             {!loading &&
                 <>
                     {errorOnPage ? <div className="error">Something went wrong!</div> :
@@ -390,7 +419,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                             <img id="spotifyLogo" src={SpotifyLogoGreen} alt={"Spotify Logo"}/>
                             <div className="smolContainer">
                                 <h1>Welcome {user.display_name}!!</h1>
-                                <button onClick={logout}>Logout</button>
+                                <button onClick={(e) => {
+                                    e.stopPropagation();
+                                    logout();
+                                }}>Logout</button>
                             </div>
 
                             <img className="usrImg" src={imageUrl} alt=""/>
