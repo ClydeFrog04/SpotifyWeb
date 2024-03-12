@@ -303,11 +303,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             await addSongsToPl(plId, songsNotAlreadyInPl);
             // console.log(TAG, `Added ${songsNotAlreadyInPl.length} songs to ${name}`);
             outText = `Added ${songsNotAlreadyInPl.length} songs to ${name}`;
-            //todo: toast here
         } else {
             // console.log(TAG, `No new songs founds to add to ${name}, songs already exist!`);
             outText = `No new songs founds to add to ${name}, songs already exist!`;
-            //todo: toast here
         }
         console.log(TAG, outText);
         makeToast(outText);
