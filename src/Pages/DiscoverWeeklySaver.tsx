@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import "./DiscoverWeeklySaver.css";
 import {Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
 import SpotifyLogoGreen from "../res/spotify-icons-logos/logos/01_RGB/02_PNG/Spotify_Logo_RGB_Green.png";
+import Toast from "../components/Toast/Toast.tsx";
 
 interface DiscoverWeeklySaverProps {
 
@@ -36,6 +37,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [showInput, setShowInput] = useState(false);
     const [dwPlId, setDwPlId] = useState("");
     const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
+    const [showToast, setShowToast] = useState(true);
+    const [toastText, setToastText] = useState("asdfklasjdhfi");
+
+
 
     //constants
     const today = new Date;
@@ -230,7 +235,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         if (onRepeatPlId !== null) {
             await addSongsToExistingPlaylist(onRepeatPlId, onRepeatItems.map((item) => item.track.uri));
         } else {
-            console.log(TAG, "on repeat did not exist, creating new playlist!", `Adding ${onRepeatItems.length} items.`);
+            const outText = `on repeat did not exist, creating new playlist! Adding ${onRepeatItems.length} items.`;
+            console.log(TAG, outText);
+            makeToast(outText);
             const playlistDetails = {
                 "name": onRepeatCollectionPLName,
                 "description": `Songs you love for ${today.toLocaleString("default", {
@@ -244,6 +251,32 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             const uris = onRepeatItems.map((e) => e.track.uri);
             console.log(TAG, `Creating new playlist ${onRepeatCollectionPLName} with ${uris.length} songs.`);
             await addSongsToPl(newPlId, uris);
+        }
+    }
+
+    /**
+     * gets all the songs for the week and adds them to an existing or new playlist. The name of the playlist is currently
+     * hard coded, but i plan to add a textfield to allow the user to create or use their own playlist name!
+     */
+    async function saveSongsToCollection() {
+        const collectionPlaylistId = await searchForPlaylistByName(dwCollectionPLName);
+        const thisWeeksSongs = getThisWeeksDWSongs();
+
+        if (collectionPlaylistId !== null) {
+            await addSongsToExistingPlaylist(collectionPlaylistId, thisWeeksSongs);
+
+        } else {
+            const outText = `creating pl and adding items: ${discoverWeeklyItems.length}`;
+            console.log(TAG, outText);
+            makeToast(outText);
+            const playlistDetails = {
+                "name": dwCollectionPLName,
+                "description": "Testing creating a discover weekly playlist from react using spotify sdk/web api",
+                "public": true
+            };
+
+            const newPlId = await createPlaylist(playlistDetails);
+            await addSongsToPl(newPlId, thisWeeksSongs);
         }
     }
 
@@ -265,36 +298,24 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
         //if we found songs that are not already in the playlist, add them. this prevents duplicate songs and
         // prevents the user from being able to spam click the button and add then entire collection multiple times :]
+        let outText = "";
         if (songsNotAlreadyInPl.length > 0) {
             await addSongsToPl(plId, songsNotAlreadyInPl);
-            console.log(TAG, `Added ${songsNotAlreadyInPl.length} songs to ${name}`);
+            // console.log(TAG, `Added ${songsNotAlreadyInPl.length} songs to ${name}`);
+            outText = `Added ${songsNotAlreadyInPl.length} songs to ${name}`;
+            //todo: toast here
         } else {
-            console.log(TAG, `No new songs founds to add to ${name}, songs already exist!`);
+            // console.log(TAG, `No new songs founds to add to ${name}, songs already exist!`);
+            outText = `No new songs founds to add to ${name}, songs already exist!`;
+            //todo: toast here
         }
+        console.log(TAG, outText);
+        makeToast(outText);
     }
 
-    /**
-     * gets all the songs for the week and adds them to an existing or new playlist. The name of the playlist is currently
-     * hard coded, but i plan to add a textfield to allow the user to create or use their own playlist name!
-     */
-    async function saveSongsToCollection() {
-        const collectionPlaylistId = await searchForPlaylistByName(dwCollectionPLName);
-        const thisWeeksSongs = getThisWeeksDWSongs();
-
-        if (collectionPlaylistId !== null) {
-            await addSongsToExistingPlaylist(collectionPlaylistId, thisWeeksSongs);
-
-        } else {
-            console.log(TAG, "creating pl and adding items:", discoverWeeklyItems.length);
-            const playlistDetails = {
-                "name": dwCollectionPLName,
-                "description": "Testing creating a discover weekly playlist from react using spotify sdk/web api",
-                "public": true
-            };
-
-            const newPlId = await createPlaylist(playlistDetails);
-            await addSongsToPl(newPlId, thisWeeksSongs);
-        }
+    const makeToast = (toastText: string) => {
+        setToastText(toastText);
+        setShowToast(true);
     }
 
     //todo: currently not using these but do we want to???
@@ -362,6 +383,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                                 onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
                                 Save these songs!
                             </button>
+                            {showToast && <Toast toastText={toastText} setShowToast={setShowToast} showToast/>}
                             <div className="plNameEntry">
                                 {activeTab === "discover_weekly" ?
 

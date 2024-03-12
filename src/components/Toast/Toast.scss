@@ -1,0 +1,26 @@
+@use "../../shared/Colors" as *;
+
+.toast {
+    background-color: black;
+    border: none;
+    max-width: calc(100vw - 1rem);
+    //padding: 0.9rem 1rem;
+    //border-radius: 4px;
+    position: fixed;
+    bottom: -4rem;
+    opacity: 0;
+    transition-property: bottom, opacity;
+    transition-duration: 1s;
+    //left: 50vw;
+
+    //border-radius: 16px;
+    border-radius: 48px;
+    padding: 20px 20px;
+    text-align: center;
+    margin: 4px 2px;
+
+    &.displayToast{
+        opacity: 1;
+        bottom: 1rem;
+    }
+}
