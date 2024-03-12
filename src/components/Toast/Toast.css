@@ -1,0 +1,21 @@
+.toast {
+  background-color: black;
+  border: none;
+  max-width: calc(100vw - 1rem);
+  position: fixed;
+  bottom: -4rem;
+  opacity: 0;
+  transition-property: bottom, opacity;
+  transition-duration: 1s;
+  border-radius: 48px;
+  padding: 20px 20px;
+  text-align: center;
+  margin: 4px 2px;
+  z-index: 100;
+}
+.toast.displayToast {
+  opacity: 1;
+  bottom: 1rem;
+}
+
+/*# sourceMappingURL=Toast.css.map */

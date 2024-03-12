@@ -12,6 +12,10 @@
         max-width: 50%;
     }
 
+    button{
+        cursor: pointer;
+    }
+
     .playlist {
         @include flexCenterColumn();
         display: flex;
@@ -117,6 +121,17 @@
             width: 29vw;
             position: absolute;
             bottom: 0;
+        }
+    }
+    .smolContainer{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+
+        button{
+            font-size: 1rem;
+            cursor: pointer;
         }
     }
 
