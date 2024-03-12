@@ -17,6 +17,7 @@ interface CreatePlaylistRequest {
 
 const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const TAG = "[DiscoverWeeklySaver.tsx]";
+    const verboseLogging = process.env.NODE_ENV === "developmenttttt";
 
     const scopes = ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private"];
     const sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
@@ -37,9 +38,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [showInput, setShowInput] = useState(false);
     const [dwPlId, setDwPlId] = useState("");
     const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
-    const [showToast, setShowToast] = useState(true);
-    const [toastText, setToastText] = useState("asdfklasjdhfi");
-
+    const [showToast, setShowToast] = useState(false);
+    const [toastText, setToastText] = useState("this is a toast:]");
 
 
     //constants
@@ -48,6 +48,15 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const year = today.toLocaleString("default", {year: "numeric"});
     const onRepeatCollectionPLName = `OnRepeat${month}${year}`;
 
+    const writeLog = (...logTextRest: any[]) => {
+        if(verboseLogging){
+            let out = "";
+            logTextRest.forEach( (logText) => {
+               out += " " + logText;
+            });
+            console.log(TAG, out);
+        }
+    }
 
     /**
      * @returns boolean whether user profile was retrieved successfully
@@ -79,7 +88,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     async function getDiscoverWeeklyPlaylistId() {
         //todo: verify that it is guaranteed that the first result will always be the users correct discover weekly
         const id = (await sdk.search("Discover Weekly", ["playlist"])).playlists?.items[0].id;
-        console.log(TAG, "id found for discover weekly playlist:", id);
+        writeLog("id found for discover weekly playlist:", id);
         return id;
     }
 
@@ -97,7 +106,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             }
         }
 
-        console.log(TAG, "on repeat id found:", id);
+        writeLog("on repeat id found:", id);
         const items = (await sdk.playlists.getPlaylistItems(id)).items;
         setOnRepeatItems(items);
 
@@ -107,15 +116,14 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     useEffect(() => {
         (async () => {
             const {authenticated} = await sdk.authenticate();
-            console.log("internal auth:", authenticated);
+            writeLog("internal auth:", authenticated);
 
             if (authenticated) {
-                console.log("yay");
                 getDiscoverWeeklyPlaylistId().then((res) => {
                     setDwPlId(res);
                 });
                 getUsersOnRepeatItems().then((res) => {
-                    console.log("on repeat", res);
+                    writeLog("on repeat", res);
                 });
 
                 if (import.meta.env.MODE === "development") {
@@ -133,7 +141,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                     });
                 }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
             } else {
-                console.log("not authed");
+                writeLog("not authed");
             }
         })();
     }, []);
@@ -183,9 +191,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     function searchListForPlaylistByName(res: Page<SimplifiedPlaylist>, name: string) {
         for (let i = 0; i < res.items.length; i++) {
             const item = res.items[i];
-            console.log(TAG, name);
+            writeLog(name);
             if (item.name === name) {
-                console.log(TAG, "the playlist already exists, leaving early so that we can add items!");
+                writeLog("the playlist already exists, leaving early so that we can add items!");
                 return item.id;
             }
         }
@@ -211,7 +219,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     async function addSongsToPl(plId: string, urisToAdd: string[]) {
         sdk.playlists.addItemsToPlaylist(plId, urisToAdd)
             .then((res) => {
-                console.log(TAG, "items added successfully:", plId);
+                writeLog("items added successfully:", plId);
             }).catch(console.error);
     }
 
@@ -228,15 +236,15 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * saves users current on repeat songs to an on repeat collection for the current month
      */
     async function saveOnRepeat() {
-        console.log(TAG, onRepeatCollectionPLName);
+        writeLog(onRepeatCollectionPLName);
         const onRepeatPlId = await searchForPlaylistByName(onRepeatCollectionPLName);
-        console.log(TAG, "saveOnRepeat:", onRepeatPlId);
+        writeLog("saveOnRepeat:", onRepeatPlId);
 
         if (onRepeatPlId !== null) {
             await addSongsToExistingPlaylist(onRepeatPlId, onRepeatItems.map((item) => item.track.uri));
         } else {
             const outText = `on repeat did not exist, creating new playlist! Adding ${onRepeatItems.length} items.`;
-            console.log(TAG, outText);
+            writeLog(outText);
             makeToast(outText);
             const playlistDetails = {
                 "name": onRepeatCollectionPLName,
@@ -249,7 +257,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
             const newPlId = await createPlaylist(playlistDetails);
             const uris = onRepeatItems.map((e) => e.track.uri);
-            console.log(TAG, `Creating new playlist ${onRepeatCollectionPLName} with ${uris.length} songs.`);
+            writeLog(`Creating new playlist ${onRepeatCollectionPLName} with ${uris.length} songs.`);
             await addSongsToPl(newPlId, uris);
         }
     }
@@ -267,7 +275,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
         } else {
             const outText = `creating pl and adding items: ${discoverWeeklyItems.length}`;
-            console.log(TAG, outText);
+            writeLog(outText);
             makeToast(outText);
             const playlistDetails = {
                 "name": dwCollectionPLName,
@@ -287,7 +295,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @param uris songs to add to playlist
      */
     async function addSongsToExistingPlaylist(plId: string, uris: string[]) {
-        console.log(TAG, "addsongstoexistingplaylist");
         const providedPlSongs = await getPlaylistUris(plId);
 
         const songsNotAlreadyInPl = uris.filter((uri) => {
@@ -301,20 +308,18 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         let outText = "";
         if (songsNotAlreadyInPl.length > 0) {
             await addSongsToPl(plId, songsNotAlreadyInPl);
-            // console.log(TAG, `Added ${songsNotAlreadyInPl.length} songs to ${name}`);
             outText = `Added ${songsNotAlreadyInPl.length} songs to ${name}`;
         } else {
-            // console.log(TAG, `No new songs founds to add to ${name}, songs already exist!`);
             outText = `No new songs founds to add to ${name}, songs already exist!`;
         }
-        console.log(TAG, outText);
+        writeLog(outText);
         makeToast(outText);
     }
 
     const makeToast = (toastText: string) => {
         setToastText(toastText);
         setShowToast(true);
-    }
+    };
 
     //todo: currently not using these but do we want to???
     const discoverWeeklyContent = (

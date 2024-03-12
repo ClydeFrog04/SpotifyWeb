@@ -11,6 +11,7 @@
   padding: 20px 20px;
   text-align: center;
   margin: 4px 2px;
+  z-index: 100;
 }
 .toast.displayToast {
   opacity: 1;
