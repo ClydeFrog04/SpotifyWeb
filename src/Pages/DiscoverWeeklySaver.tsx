@@ -19,7 +19,6 @@ interface CreatePlaylistRequest {
 const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const TAG = "[DiscoverWeeklySaver.tsx]";
     const verboseLogging = import.meta.env.VITE_VERBOSE_LOGGING === "true";
-    console.log("VERBOSE LOGGING SET TO", verboseLogging);
 
     const scopes = ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private"];
     const sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
@@ -42,6 +41,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
     const [showToast, setShowToast] = useState(false);
     const [toastText, setToastText] = useState("this is a toast:]");
+    const [fetchState, setFetchState] = useState<"fetching"|"notFetching">("notFetching");
+
+
     const timeToCompareAgainst = useRef(0);
 
 
@@ -161,7 +163,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                     writeLog("on repeat", res);
                 });
 
-                if (import.meta.env.MODE === "development") {
+                if (import.meta.env.MODE === "developmenttttt") {
                     setDwCollectionPLName("Discover Weekly Collection_DEV");
 
                 }
@@ -240,9 +242,18 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @param plId
      */
     async function getPlaylistUris(plId: string) {
-        return (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
-            return item.track.uri;
-        });
+        let offset = 0;
+        const offsetVal = 50;
+        let uris: string[] = [];
+
+        let tmpUris;
+        while((tmpUris = await sdk.playlists.getPlaylistItems(plId, undefined, undefined, offsetVal, offset)).items.length > 0){
+            uris.push(...tmpUris.items.map( (item) => {
+                return item.track.uri;
+            }));
+            offset += offsetVal;
+        }
+        return uris;
     }
 
     /**
@@ -271,6 +282,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * saves users current on repeat songs to an on repeat collection for the current month
      */
     async function saveOnRepeat() {
+        setFetchState("fetching");
         writeLog(onRepeatCollectionPLName);
         const onRepeatPlId = await searchForPlaylistByName(onRepeatCollectionPLName);
         writeLog("saveOnRepeat:", onRepeatPlId);
@@ -295,6 +307,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             writeLog(`Creating new playlist ${onRepeatCollectionPLName} with ${uris.length} songs.`);
             await addSongsToPl(newPlId, uris);
         }
+        setFetchState("notFetching");
     }
 
     /**
@@ -302,7 +315,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * hard coded, but i plan to add a textfield to allow the user to create or use their own playlist name!
      */
     async function saveSongsToCollection() {
+        setFetchState("fetching");
         const collectionPlaylistId = await searchForPlaylistByName(dwCollectionPLName);
+        writeLog("collection playlist found:", collectionPlaylistId);
         const thisWeeksSongs = getThisWeeksDWSongs();
 
         if (collectionPlaylistId !== null) {
@@ -321,6 +336,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             const newPlId = await createPlaylist(playlistDetails);
             await addSongsToPl(newPlId, thisWeeksSongs);
         }
+        setFetchState("notFetching");
     }
 
     /**
@@ -332,8 +348,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     async function addSongsToExistingPlaylist(plId: string, uris: string[]) {
         const providedPlSongs = await getPlaylistUris(plId);
 
+        writeLog("addSongsToExistingPlaylist songs provided:", providedPlSongs, providedPlSongs.length);
         const songsNotAlreadyInPl = uris.filter((uri) => {
-            return !providedPlSongs.includes(uri);
+            writeLog("addSongsToExistingPlaylist", "filtering:", uri);
+            return !providedPlSongs.includes(uri);//todo: instead of doing a .includes we should create a hashmap for quick lookup :]
         });
 
         const name = (await sdk.playlists.getPlaylist(plId)).name;
@@ -429,7 +447,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                             <img className="usrImg" src={imageUrl} alt=""/>
                             <button
                                 onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
-                                Save these songs!
+                                {fetchState === "fetching" ? "Saving..." : "Save these songs!"}
                             </button>
                             {showToast && <Toast toastText={toastText} setShowToast={setShowToast} showToast/>}
                             <div className="plNameEntry">
