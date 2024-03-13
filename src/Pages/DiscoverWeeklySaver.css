@@ -63,6 +63,9 @@
 .discoverWeeklySaver button {
   cursor: pointer;
 }
+.discoverWeeklySaver button:disabled {
+  cursor: not-allowed;
+}
 .discoverWeeklySaver .playlist {
   display: flex;
   align-items: center;
