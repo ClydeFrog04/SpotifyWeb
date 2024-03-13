@@ -44,7 +44,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [fetchState, setFetchState] = useState<"fetching"|"notFetching">("notFetching");
 
 
+    //refs
     const timeToCompareAgainst = useRef(0);
+    const toastRef = useRef<HTMLElement>();
 
 
     //constants
@@ -346,6 +348,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @param uris songs to add to playlist
      */
     async function addSongsToExistingPlaylist(plId: string, uris: string[]) {
+        makeToast("Saving songs to playlist");
         const providedPlSongs = await getPlaylistUris(plId);
 
         writeLog("addSongsToExistingPlaylist songs provided:", providedPlSongs, providedPlSongs.length);
@@ -449,7 +452,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                                 onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
                                 {fetchState === "fetching" ? "Saving..." : "Save these songs!"}
                             </button>
-                            {showToast && <Toast toastText={toastText} setShowToast={setShowToast} showToast/>}
+                            {showToast && <Toast startTimeout={fetchState === "notFetching"} toastText={toastText} setShowToast={setShowToast} showToast/>}
                             <div className="plNameEntry">
                                 {activeTab === "discover_weekly" ?
 
