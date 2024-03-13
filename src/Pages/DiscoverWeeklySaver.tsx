@@ -19,7 +19,6 @@ interface CreatePlaylistRequest {
 const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const TAG = "[DiscoverWeeklySaver.tsx]";
     const verboseLogging = import.meta.env.VITE_VERBOSE_LOGGING === "true";
-    console.log("VERBOSE LOGGING SET TO", verboseLogging);
 
     const scopes = ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private"];
     const sdk = SpotifyApi.withUserAuthorization(import.meta.env.VITE_SPOTIFY_CLIENT_ID, import.meta.env.VITE_REDIRECT_TARGET, scopes);
@@ -161,7 +160,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                     writeLog("on repeat", res);
                 });
 
-                if (import.meta.env.MODE === "development") {
+                if (import.meta.env.MODE === "developmenttttt") {
                     setDwCollectionPLName("Discover Weekly Collection_DEV");
 
                 }
@@ -240,9 +239,19 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @param plId
      */
     async function getPlaylistUris(plId: string) {
-        return (await sdk.playlists.getPlaylistItems(plId)).items.map((item) => {
-            return item.track.uri;
-        });
+        let offset = 0;
+        const offsetVal = 50;
+        let uris: string[] = [];
+
+        let tmpUris;
+        while((tmpUris = await sdk.playlists.getPlaylistItems(plId, undefined, undefined, offsetVal, offset)).items.length > 0){
+            uris.push(...tmpUris.items.map( (item) => {
+                return item.track.uri;
+            }));
+            offset += offsetVal;
+        }
+
+        return uris;
     }
 
     /**
@@ -303,6 +312,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      */
     async function saveSongsToCollection() {
         const collectionPlaylistId = await searchForPlaylistByName(dwCollectionPLName);
+        writeLog("collection playlist found:", collectionPlaylistId);
         const thisWeeksSongs = getThisWeeksDWSongs();
 
         if (collectionPlaylistId !== null) {
@@ -332,8 +342,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     async function addSongsToExistingPlaylist(plId: string, uris: string[]) {
         const providedPlSongs = await getPlaylistUris(plId);
 
+        writeLog("addSongsToExistingPlaylist songs provided:", providedPlSongs, providedPlSongs.length);
         const songsNotAlreadyInPl = uris.filter((uri) => {
-            return !providedPlSongs.includes(uri);
+            writeLog("addSongsToExistingPlaylist", "filtering:", uri);
+            return !providedPlSongs.includes(uri);//todo: instead of doing a .includes we should create a hashmap for quick lookup :]
         });
 
         const name = (await sdk.playlists.getPlaylist(plId)).name;
