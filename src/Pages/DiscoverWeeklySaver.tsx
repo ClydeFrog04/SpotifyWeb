@@ -41,6 +41,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
     const [showToast, setShowToast] = useState(false);
     const [toastText, setToastText] = useState("this is a toast:]");
+    const [fetchState, setFetchState] = useState<"fetching"|"notFetching">("notFetching");
+
+
     const timeToCompareAgainst = useRef(0);
 
 
@@ -250,7 +253,6 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             }));
             offset += offsetVal;
         }
-
         return uris;
     }
 
@@ -280,6 +282,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * saves users current on repeat songs to an on repeat collection for the current month
      */
     async function saveOnRepeat() {
+        setFetchState("fetching");
         writeLog(onRepeatCollectionPLName);
         const onRepeatPlId = await searchForPlaylistByName(onRepeatCollectionPLName);
         writeLog("saveOnRepeat:", onRepeatPlId);
@@ -304,6 +307,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             writeLog(`Creating new playlist ${onRepeatCollectionPLName} with ${uris.length} songs.`);
             await addSongsToPl(newPlId, uris);
         }
+        setFetchState("notFetching");
     }
 
     /**
@@ -311,6 +315,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * hard coded, but i plan to add a textfield to allow the user to create or use their own playlist name!
      */
     async function saveSongsToCollection() {
+        setFetchState("fetching");
         const collectionPlaylistId = await searchForPlaylistByName(dwCollectionPLName);
         writeLog("collection playlist found:", collectionPlaylistId);
         const thisWeeksSongs = getThisWeeksDWSongs();
@@ -331,6 +336,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             const newPlId = await createPlaylist(playlistDetails);
             await addSongsToPl(newPlId, thisWeeksSongs);
         }
+        setFetchState("notFetching");
     }
 
     /**
@@ -441,7 +447,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                             <img className="usrImg" src={imageUrl} alt=""/>
                             <button
                                 onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
-                                Save these songs!
+                                {fetchState === "fetching" ? "Saving..." : "Save these songs!"}
                             </button>
                             {showToast && <Toast toastText={toastText} setShowToast={setShowToast} showToast/>}
                             <div className="plNameEntry">
