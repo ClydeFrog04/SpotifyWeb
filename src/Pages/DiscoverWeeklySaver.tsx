@@ -165,7 +165,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                     writeLog("on repeat", res);
                 });
 
-                if (import.meta.env.MODE === "developmenttttt") {
+                if (import.meta.env.MODE === "development") {
                     setDwCollectionPLName("Discover Weekly Collection_DEV");
 
                 }
@@ -318,15 +318,17 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      */
     async function saveSongsToCollection() {
         setFetchState("fetching");
+        makeToast("Saving songs!");
         const collectionPlaylistId = await searchForPlaylistByName(dwCollectionPLName);
         writeLog("collection playlist found:", collectionPlaylistId);
         const thisWeeksSongs = getThisWeeksDWSongs();
 
         if (collectionPlaylistId !== null) {
             await addSongsToExistingPlaylist(collectionPlaylistId, thisWeeksSongs);
+            setFetchState("notFetching");
 
         } else {
-            const outText = `creating pl and adding items: ${discoverWeeklyItems.length}`;
+            const outText = `Creating playlist and adding ${discoverWeeklyItems.length} songs!`;
             writeLog(outText);
             makeToast(outText);
             const playlistDetails = {
@@ -337,8 +339,13 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
             const newPlId = await createPlaylist(playlistDetails);
             await addSongsToPl(newPlId, thisWeeksSongs);
+            //playlist creating happens really fast most of the time so this allows time for the toast to display!
+            setTimeout( () => {
+                makeToast("Playlist created successfully!");
+                setFetchState("notFetching");
+            }, 1_000);
+            // setFetchState("notFetching");
         }
-        setFetchState("notFetching");
     }
 
     /**
@@ -366,7 +373,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             await addSongsToPl(plId, songsNotAlreadyInPl);
             outText = `Added ${songsNotAlreadyInPl.length} songs to ${name}`;
         } else {
-            outText = `No new songs founds to add to ${name}, songs already exist!`;
+            outText = `No new songs found to add to ${name}, songs already exist!`;
         }
         writeLog(outText);
         makeToast(outText);
@@ -449,6 +456,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
                             <img className="usrImg" src={imageUrl} alt=""/>
                             <button
+                                disabled={fetchState === "fetching"}
                                 onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
                                 {fetchState === "fetching" ? "Saving..." : "Save these songs!"}
                             </button>
