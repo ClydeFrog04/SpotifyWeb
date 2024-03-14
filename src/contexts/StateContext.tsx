@@ -18,7 +18,7 @@ interface IState {
 }
 
 //the actual context object
-export const StateContext = createContext<IState>(defaultState);
+export const StateContext = createContext<IState>(defaultState as unknown as IState);
 
 //and finally the provider for the context
 export const StateContextProvider: React.FC<JSX.Element> = (props: PropsWithChildren<React.ReactNode>) =>{

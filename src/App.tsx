@@ -1,6 +1,6 @@
 import "./App.scss";
 import {Route, Routes} from "react-router-dom";
-import DiscoverWeeklySaver from "./Pages/DiscoverWeeklySaver.tsx";
+import DiscoverWeeklySaver from "./Pages/DiscoverWeeklySaver/DiscoverWeeklySaver.tsx";
 
 function App() {
     const TAG = "[APP.tsx]";
