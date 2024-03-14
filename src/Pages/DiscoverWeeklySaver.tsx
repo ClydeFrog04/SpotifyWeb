@@ -508,12 +508,17 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
                                             //todo: make secondary request for when item is an episode to get the creators name.
                                             const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
+                                            writeLog(`uri ${item.track.uri}`);
+                                            writeLog(`uri ${item.track.uri.split("spotify:").join("")}`);
+                                            writeLog(`https://open.spotify.com/${item.track.uri.split("spotify:").join("").replaceAll(/:/g, "/")}`);
                                             return (
-                                                <div className={"track"} key={id}>
+                                                <a key={id} href={`https://open.spotify.com/${item.track.uri.split("spotify:").join("").replaceAll(/:/g, "/")}`} target={"_blank"}>
+                                                <div className={"track"} >
                                                     <div className="name">{name}</div>
                                                     <span>-</span>
                                                     <div className="artist">{artist}</div>
                                                 </div>
+                                                </a>
                                             );
                                         })
                                     }
