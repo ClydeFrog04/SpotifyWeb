@@ -1,5 +1,5 @@
 @use "../../shared/Styles" as *;
-@use "../../shared/Variables" as *;
+@use "../../shared/Variables.scss" as *;
 
 .logoutPage{
     @include flexCenterColumn();
