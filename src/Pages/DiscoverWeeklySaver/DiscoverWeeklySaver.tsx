@@ -1,9 +1,9 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useContext, useEffect, useRef, useState} from "react";
 import "./DiscoverWeeklySaver.css";
 import {Page, PlaylistedTrack, SimplifiedPlaylist, SpotifyApi, UserProfile} from "@spotify/web-api-ts-sdk";
-import SpotifyLogoGreen from "../res/spotify-icons-logos/logos/01_RGB/02_PNG/Spotify_Logo_RGB_Green.png";
-import Toast from "../components/Toast/Toast.tsx";
-import {useNavigate} from "react-router-dom";
+import SpotifyLogoGreen from "../../res/spotify-icons-logos/logos/01_RGB/02_PNG/Spotify_Logo_RGB_Green.png";
+import Toast from "../../components/Toast/Toast.tsx";
+import {useNavigate, useLocation} from "react-router-dom";
 
 interface DiscoverWeeklySaverProps {
 
@@ -41,7 +41,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const [activeTab, setActiveTab] = useState<"discover_weekly" | "on_repeat">("discover_weekly");
     const [showToast, setShowToast] = useState(false);
     const [toastText, setToastText] = useState("this is a toast:]");
-    const [fetchState, setFetchState] = useState<"fetching"|"notFetching">("notFetching");
+    const [fetchState, setFetchState] = useState<"fetching" | "notFetching">("notFetching");
 
 
     //refs
@@ -55,6 +55,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const year = today.toLocaleString("default", {year: "numeric"});
     const onRepeatCollectionPLName = `OnRepeat${month}${year}`;
     const navigate = useNavigate();
+    const location = useLocation();
     const oneDayInMS = 86_400_000;
 
     const writeLog = (...logTextRest: any[]) => {
@@ -69,10 +70,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
     const logout = () => {
         writeLog("Logging out!");
-        localStorage.removeItem("spotify-sdk:AuthorizationCodeWithPKCEStrategy:token");
-        localStorage.removeItem("spotify-sdk:verifier");
-        localStorage.removeItem("TTL");
-        navigate("/");
+        sdk.logOut();
+        navigate("logout");
     };
 
     /**
@@ -148,41 +147,46 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     };
 
     useEffect(() => {
-        timeToCompareAgainst.current = Date.now();
-        writeLog("about to call ttl");
-        validateTTL();
-        writeLog("post call ttl");
+        if (location.search.includes("access_denied")) {
+            navigate("/");
+        } else {
+            timeToCompareAgainst.current = Date.now();
+            writeLog("about to call ttl");
+            validateTTL();
+            writeLog("post call ttl");
 
-        (async () => {
-            const {authenticated} = await sdk.authenticate();
-            writeLog("internal auth:", authenticated);
+            (async () => {
+                const {authenticated, accessToken} = await sdk.authenticate();
+                // writeLog("internal auth:", authenticated, JSON.stringify(accessToken));
 
-            if (authenticated) {
-                getDiscoverWeeklyPlaylistId().then((res) => {
-                    setDwPlId(res);
-                });
-                getUsersOnRepeatItems().then((res) => {
-                    writeLog("on repeat", res);
-                });
-
-                if (import.meta.env.MODE === "development") {
-                    setDwCollectionPLName("Discover Weekly Collection_DEV");
-
-                }
-                getCurrentUserProfile().then(() => {
-                    getDiscoverWeeklyItems().then((res) => {
-                        setLoading(false);
-                        if (res) {
-                            setDiscoverWeeklyItems(res);
-                        } else {
-                            setErrorOnPage(true);
-                        }
+                if (authenticated) {
+                    getDiscoverWeeklyPlaylistId().then((res) => {
+                        setDwPlId(res);
                     });
-                }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
-            } else {
-                writeLog("not authed");
-            }
-        })();
+                    getUsersOnRepeatItems().then((res) => {
+                        writeLog("on repeat", res);
+                    });
+
+                    if (import.meta.env.MODE === "development") {
+                        setDwCollectionPLName("Discover Weekly Collection_DEV");
+
+                    }
+                    getCurrentUserProfile().then(() => {
+                        getDiscoverWeeklyItems().then((res) => {
+                            setLoading(false);
+                            if (res) {
+                                setDiscoverWeeklyItems(res);
+                            } else {
+                                setErrorOnPage(true);
+                            }
+                        });
+                    }).catch(console.error);//todo: might need a loading screen got the getdwitems, we will have to wait for that to finish
+                } else {
+                    writeLog("not authed", JSON.stringify(location));
+                }
+            })();
+        }
+
     }, []);
 
     function toggleShowInput() {
@@ -249,8 +253,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         let uris: string[] = [];
 
         let tmpUris;
-        while((tmpUris = await sdk.playlists.getPlaylistItems(plId, undefined, undefined, offsetVal, offset)).items.length > 0){
-            uris.push(...tmpUris.items.map( (item) => {
+        while ((tmpUris = await sdk.playlists.getPlaylistItems(plId, undefined, undefined, offsetVal, offset)).items.length > 0) {
+            uris.push(...tmpUris.items.map((item) => {
                 return item.track.uri;
             }));
             offset += offsetVal;
@@ -340,7 +344,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             const newPlId = await createPlaylist(playlistDetails);
             await addSongsToPl(newPlId, thisWeeksSongs);
             //playlist creating happens really fast most of the time so this allows time for the toast to display!
-            setTimeout( () => {
+            setTimeout(() => {
                 makeToast("Playlist created successfully!");
                 setFetchState("notFetching");
             }, 1_000);
@@ -437,7 +441,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     );
 
     return (
-        <div className="discoverWeeklySaver" onClick={ () => {
+        <div className="discoverWeeklySaver" onClick={() => {
             writeLog("CLOCKED", Date.now());
             extendTTL();
         }}>
@@ -451,7 +455,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                                 <button onClick={(e) => {
                                     e.stopPropagation();
                                     logout();
-                                }}>Logout</button>
+                                }}>Logout
+                                </button>
                             </div>
 
                             <img className="usrImg" src={imageUrl} alt=""/>
@@ -460,7 +465,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                                 onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
                                 {fetchState === "fetching" ? "Saving..." : "Save these songs!"}
                             </button>
-                            {showToast && <Toast startTimeout={fetchState === "notFetching"} toastText={toastText} setShowToast={setShowToast} showToast/>}
+                            {showToast && <Toast startTimeout={fetchState === "notFetching"} toastText={toastText}
+                                                 setShowToast={setShowToast} showToast/>}
                             <div className="plNameEntry">
                                 {activeTab === "discover_weekly" ?
 
@@ -512,12 +518,14 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                                             writeLog(`uri ${item.track.uri.split("spotify:").join("")}`);
                                             writeLog(`https://open.spotify.com/${item.track.uri.split("spotify:").join("").replaceAll(/:/g, "/")}`);
                                             return (
-                                                <a key={id} href={`https://open.spotify.com/${item.track.uri.split("spotify:").join("").replaceAll(/:/g, "/")}`} target={"_blank"}>
-                                                <div className={"track"} >
-                                                    <div className="name">{name}</div>
-                                                    <span>-</span>
-                                                    <div className="artist">{artist}</div>
-                                                </div>
+                                                <a key={id}
+                                                   href={`https://open.spotify.com/${item.track.uri.split("spotify:").join("").replaceAll(/:/g, "/")}`}
+                                                   target={"_blank"}>
+                                                    <div className={"track"}>
+                                                        <div className="name">{name}</div>
+                                                        <span>-</span>
+                                                        <div className="artist">{artist}</div>
+                                                    </div>
                                                 </a>
                                             );
                                         })

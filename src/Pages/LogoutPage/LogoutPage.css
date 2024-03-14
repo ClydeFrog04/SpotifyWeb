@@ -1,0 +1,80 @@
+.rightAlign {
+  text-align: right;
+}
+
+.leftAlign {
+  text-align: left;
+}
+
+.title {
+  font-size: 2rem;
+}
+
+.italics {
+  font-style: italic;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.fadeOut {
+  animation: fadeout 0.5s forwards;
+}
+
+.fadeIn {
+  animation: fadein 0.5s forwards;
+}
+
+@keyframes fadeout {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (min-width: 768px) {
+  .title {
+    font-size: 2.75rem;
+  }
+}
+.logoutPage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  align-self: flex-start;
+  padding: 2rem;
+  gap: 1rem;
+}
+.logoutPage h1 {
+  font-size: 2rem;
+}
+.logoutPage p {
+  font-size: 1.5rem;
+}
+.logoutPage .uhoh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
+}
+@media (width < 480px) {
+  .logoutPage {
+    text-align: center;
+  }
+}
+
+/*# sourceMappingURL=LogoutPage.css.map */
