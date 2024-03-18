@@ -56,7 +56,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const onRepeatCollectionPLName = `OnRepeat${month}${year}`;
     const navigate = useNavigate();
     const location = useLocation();
-    const oneDayInMS = 86_400_000;
+    const oneDayInMS = 15_000;//86_400_000;
 
     const writeLog = (...logTextRest: any[]) => {
         if (verboseLogging) {
@@ -70,6 +70,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
     const logout = () => {
         writeLog("Logging out!");
+        localStorage.removeItem("TTL");
         sdk.logOut();
         navigate("logout");
     };
@@ -148,6 +149,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
     useEffect(() => {
         if (location.search.includes("access_denied")) {
+            writeLog("access denied, we are not authorizing");
             navigate("/");
         } else {
             timeToCompareAgainst.current = Date.now();
@@ -281,7 +283,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
      * @returns the playlist id of the newly created playlist :]
      */
     async function createPlaylist(playlistDetails: CreatePlaylistRequest) {
-        return (await sdk.playlists.createPlaylist(user.id, playlistDetails)).id;
+        return (await sdk.playlists.createPlaylist(user.id, playlistDetails));
     }
 
     /**
@@ -308,7 +310,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                 "public": true
             };
 
-            const newPlId = await createPlaylist(playlistDetails);
+            const plDetails = await createPlaylist(playlistDetails);
+            const newPlId = plDetails.id;
             const uris = onRepeatItems.map((e) => e.track.uri);
             writeLog(`Creating new playlist ${onRepeatCollectionPLName} with ${uris.length} songs.`);
             await addSongsToPl(newPlId, uris);
@@ -341,7 +344,8 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                 "public": true
             };
 
-            const newPlId = await createPlaylist(playlistDetails);
+            const plDetails = await createPlaylist(playlistDetails);
+            const newPlId = plDetails.id;
             await addSongsToPl(newPlId, thisWeeksSongs);
             //playlist creating happens really fast most of the time so this allows time for the toast to display!
             setTimeout(() => {
@@ -387,6 +391,11 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
         setToastText(toastText);
         setShowToast(true);
     };
+
+    const createOpenUrl = (uri: string) =>{
+        return `https://open.spotify.com/${uri.split("spotify:").join("").replaceAll(/:/g, "/")}`
+
+    }
 
     //todo: currently not using these but do we want to???
     const discoverWeeklyContent = (
@@ -516,10 +525,10 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                                             const artist = "artists" in item.track ? item.track.artists[0].name : "Get Creator";
                                             writeLog(`uri ${item.track.uri}`);
                                             writeLog(`uri ${item.track.uri.split("spotify:").join("")}`);
-                                            writeLog(`https://open.spotify.com/${item.track.uri.split("spotify:").join("").replaceAll(/:/g, "/")}`);
+                                            writeLog(createOpenUrl(item.track.uri));
                                             return (
                                                 <a key={id}
-                                                   href={`https://open.spotify.com/${item.track.uri.split("spotify:").join("").replaceAll(/:/g, "/")}`}
+                                                   href={createOpenUrl(item.track.uri)}
                                                    target={"_blank"}>
                                                     <div className={"track"}>
                                                         <div className="name">{name}</div>
