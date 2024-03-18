@@ -6,6 +6,7 @@ interface ToastProps {
     setShowToast: React.Dispatch<SetStateAction<boolean>>;
     showToast: boolean;
     startTimeout: boolean;
+    href?: string;
 
 }
 
@@ -40,7 +41,9 @@ const Toast = (props: ToastProps) =>{
 
     return (
         <div ref={toastRef} className="toast" id={"toastMessage"}>
-            {props.toastText}
+            <a href={props.href || ""} target={"_blank"}>
+                {props.toastText}
+            </a>
         </div>
     );
 }
