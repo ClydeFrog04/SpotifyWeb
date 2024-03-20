@@ -46,7 +46,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
     //refs
     const timeToCompareAgainst = useRef(0);
-    const toastRef = useRef<HTMLElement>();
+    const playlistHref = useRef<string>("");
 
 
     //constants
@@ -56,7 +56,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
     const onRepeatCollectionPLName = `OnRepeat${month}${year}`;
     const navigate = useNavigate();
     const location = useLocation();
-    const oneDayInMS = 15_000;//86_400_000;
+    const oneDayInMS = 86_400_000;
 
     const writeLog = (...logTextRest: any[]) => {
         if (verboseLogging) {
@@ -346,6 +346,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
 
             const plDetails = await createPlaylist(playlistDetails);
             const newPlId = plDetails.id;
+            playlistHref.current = plDetails.href;
             await addSongsToPl(newPlId, thisWeeksSongs);
             //playlist creating happens really fast most of the time so this allows time for the toast to display!
             setTimeout(() => {
@@ -372,7 +373,9 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
             return !providedPlSongs.includes(uri);//todo: instead of doing a .includes we should create a hashmap for quick lookup :]
         });
 
-        const name = (await sdk.playlists.getPlaylist(plId)).name;
+        const plDetails = await sdk.playlists.getPlaylist(plId);
+        const name = plDetails.name;
+        playlistHref.current = createOpenUrl(plDetails.uri);
 
         //if we found songs that are not already in the playlist, add them. this prevents duplicate songs and
         // prevents the user from being able to spam click the button and add then entire collection multiple times :]
@@ -474,7 +477,7 @@ const DiscoverWeeklySaver = (props: DiscoverWeeklySaverProps) => {
                                 onClick={activeTab === "discover_weekly" ? saveSongsToCollection : saveOnRepeat}>
                                 {fetchState === "fetching" ? "Saving..." : "Save these songs!"}
                             </button>
-                            {showToast && <Toast startTimeout={fetchState === "notFetching"} toastText={toastText}
+                            {showToast && <Toast href={playlistHref.current} startTimeout={fetchState === "notFetching"} toastText={toastText}
                                                  setShowToast={setShowToast} showToast/>}
                             <div className="plNameEntry">
                                 {activeTab === "discover_weekly" ?
