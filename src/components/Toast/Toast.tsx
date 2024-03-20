@@ -29,7 +29,8 @@ const Toast = (props: ToastProps) =>{
     }, []);
 
     useEffect(() => {
-        if(props.startTimeout === true){
+        console.log(TAG, "href provided was", props.href);
+        if(props.startTimeout){
             setTimeout( () => {
                 toastRef.current?.classList.remove("displayToast");
                 setTimeout( () => {
@@ -41,7 +42,7 @@ const Toast = (props: ToastProps) =>{
 
     return (
         <div ref={toastRef} className="toast" id={"toastMessage"}>
-            <a href={props.href || ""} target={"_blank"}>
+            <a href={props.href || undefined} target={"_blank"}>
                 {props.toastText}
             </a>
         </div>
