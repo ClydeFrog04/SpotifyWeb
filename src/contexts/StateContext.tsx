@@ -4,7 +4,7 @@
  */
 
 
-import React, {createContext, Dispatch, JSX, PropsWithChildren, SetStateAction, useState} from "react";
+import React, {createContext, Dispatch, JSX, PropsWithChildren, ReactNode, SetStateAction, useState} from "react";
 
 //define our default state
 const defaultState = {
@@ -20,13 +20,13 @@ interface IState {
 //the actual context object
 export const StateContext = createContext<IState>(defaultState as unknown as IState);
 
+interface StateContextProviderProps {
+    children?: ReactNode;
+}
+
 //and finally the provider for the context
-export const StateContextProvider: React.FC<JSX.Element> = (props: PropsWithChildren<React.ReactNode>) =>{
+export const StateContextProvider: React.FC<StateContextProviderProps> = ({children}) =>{
     const [name, setName] = useState(defaultState.name);
-
-
-
-
 
     return (
         <StateContext.Provider
@@ -35,7 +35,7 @@ export const StateContextProvider: React.FC<JSX.Element> = (props: PropsWithChil
                 setName
 
             }}>
-            {props.children}
+            {children}
         </StateContext.Provider>
     );
 }
